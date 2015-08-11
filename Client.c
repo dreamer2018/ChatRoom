@@ -24,7 +24,7 @@
 #define STRMAX 100
 
 
-#define BUFMAX 512
+#define BUFMAX 1024
 
 //函数声明部分
 char UserName[21];
@@ -301,6 +301,7 @@ int Sign_In(int sock_fd)
         }
         if(!strncmp(recv_buf.Message,"Succ",4))
         {
+            strcpy(UserName,recv_buf.Recvname);
             printf("Signin Success \n");
             break;
         }
@@ -309,6 +310,53 @@ int Sign_In(int sock_fd)
             printf("Nickname Or Password Error\n");
             printf("Please Try Again\n");
         }
+    }
+}
+
+void print_time(time_t st_time) //日期解析函数
+{
+    struct tm *p;
+    p=localtime(&st_time);
+    printf("%d-",p->tm_year+1900);
+    if(p->tm_mon<10)
+    {
+        printf("0%d-",p->tm_mon+1);
+    }
+    else
+    {
+        printf("%2d-",p->tm_mon+1);
+    }
+    if(p->tm_mday<10) //小于十的前面补零
+    {
+        printf("0%d",p->tm_mday); 
+    }
+    else
+    {
+        printf("%2d",p->tm_mday);        
+    }
+    if(p->tm_hour<10)
+    {
+        printf(" 0%d:",p->tm_hour);        
+    }
+    else
+    {
+       printf(" %2d:",p->tm_hour);        
+    }
+    if(p->tm_min<10)
+    {
+        printf("0%d",p->tm_min);        
+    }
+    else
+    {
+        printf("%2d",p->tm_min);           
+    }
+    if(p->tm_sec<10)
+    {
+        printf(":0%d\n",p->tm_sec);
+    }
+    else
+    {
+        printf(":%2d\n",p->tm_sec);
     }
 }
 
@@ -409,13 +457,50 @@ void *threadsend(void * vargp)
     time_t now;
     while(1)
     {
-        printf("\033[34m ME:");
-        fgets(temp,BUFMAX,stdin);
-        //gets(temp);
-        printf("\033[0m");
-        send(connfd,temp,BUFMAX,0);
+        memset(temp,0,BUFSIZE);
+        //fgets(temp,BUFMAX,stdin);
+        gets(temp);
+        //printf("%s\n",temp);
+        if(strlen(temp)>512)
+        {
+            printf("send fail,message too long\n");
+        }
+        //printf("      send  Ok!\n");     
+        if(!strncmp(temp,"@",1))
+        {
+            int i,j=-1,k=-1;
+            for(i=1;i<20;i++)
+            {
+                if(temp[i]==' ')
+                    break;
+                j++;
+                buf.Recvname[j]=temp[i];
+            }
+            buf.Sendname[i]='\0';
+            for(j=i;j<512;j++)
+            {
+                if(temp[j]==' ')
+                    continue;
+                while(1)
+                {
+                    k++;
+                    buf.Message[k]=temp[j];
+                    j++;
+                    if(temp[j]=='\0')
+                        break;
+                }
+                break;
+            }
+            memset(&buf,0,sizeof(message_node_t));
+            buf.flag=4;
+            strcpy(buf.Sendname,UserName);
+            //strcpy(buf.Recvname,"everyone");
+            //strcpy(buf.Message,temp);    
+            time(&now);
+            buf.Sendtime=now;
+            send(connfd,&buf,sizeof(message_node_t),0);
+        }
     }
-    
     printf("client send\n");
     return NULL;
 }
@@ -423,18 +508,19 @@ void *threadsend(void * vargp)
 
 void *threadrecv(void *vargp)
 {
-    char temp[BUFMAX];
     int connfd = *((int *)vargp);   
+    message_node_t buf;
     while(1)
     {
+        memset(&buf,0,sizeof(message_node_t));
         int idata = 0;
-        idata = recv(connfd,temp,BUFMAX,0);
-        printf("\033[36m");
+        idata = recv(connfd,&buf,sizeof(message_node_t),0);
         if(idata > 0)
         {
-            printf("server :%s",temp);
+            printf("\n");
+            print_time(buf.Sendtime);
+            printf("\033[44m%-6s\033[0m : %s\n",buf.Sendname,buf.Message);
         }
-        printf("\033[0m");
         //printf("Test\n");
     }
     return NULL;
