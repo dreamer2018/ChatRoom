@@ -458,25 +458,29 @@ void *threadsend(void * vargp)
     while(1)
     {
         memset(temp,0,BUFSIZE);
+        memset(&buf,0,sizeof(message_node_t));
         //fgets(temp,BUFMAX,stdin);
         gets(temp);
+        time(&now);
         //printf("%s\n",temp);
         if(strlen(temp)>512)
         {
-            printf("send fail,message too long\n");
+            printf("Send Fail,Message Too Long\n");
+            continue;
         }
-        //printf("      send  Ok!\n");     
+        printf("      send  Success! ");
+        print_time(now);
         if(!strncmp(temp,"@",1))
         {
             int i,j=-1,k=-1;
-            for(i=1;i<20;i++)
+            for(i=1;j<20;i++)
             {
                 if(temp[i]==' ')
                     break;
                 j++;
                 buf.Recvname[j]=temp[i];
             }
-            buf.Sendname[i]='\0';
+            buf.Recvname[j+1]='\0';
             for(j=i;j<512;j++)
             {
                 if(temp[j]==' ')
@@ -491,14 +495,44 @@ void *threadsend(void * vargp)
                 }
                 break;
             }
-            memset(&buf,0,sizeof(message_node_t));
             buf.flag=4;
             strcpy(buf.Sendname,UserName);
-            //strcpy(buf.Recvname,"everyone");
-            //strcpy(buf.Message,temp);    
-            time(&now);
             buf.Sendtime=now;
-            send(connfd,&buf,sizeof(message_node_t),0);
+            if(send(connfd,&buf,sizeof(message_node_t),0)<0)
+            {
+                perror("send");
+            }
+        }
+        else if(!strncmp(temp,"//",2))
+        {
+            int i,j=-1,k=-1;
+            buf.flag=0;
+            for(i=2;;i++)
+            {
+                j++;
+                buf.Message[j]=temp[i];
+                if(temp[i]=='\0')
+                    break;
+            }
+            strcpy(buf.Sendname,UserName);
+            strcpy(buf.Recvname,"system");
+            buf.Sendtime=now; 
+            if(send(connfd,&buf,sizeof(message_node_t),0)<0)
+            {
+                perror("send");
+            }
+        }
+        else
+        {
+            buf.flag=3;
+            strcpy(buf.Sendname,UserName);
+            buf.Sendtime=now;
+            strcpy(buf.Recvname,"everyone"); 
+            strcpy(buf.Message,temp);
+            if(send(connfd,&buf,sizeof(message_node_t),0)<0)
+            {
+                perror("send");
+            }
         }
     }
     printf("client send\n");
@@ -519,7 +553,15 @@ void *threadrecv(void *vargp)
         {
             printf("\n");
             print_time(buf.Sendtime);
-            printf("\033[44m%-6s\033[0m : %s\n",buf.Sendname,buf.Message);
+            if(buf.flag==4)
+            {
+
+                printf("\033[34m%-6s\033[0m :\033[35m %s\033[0m\n",buf.Sendname,buf.Message);
+            }
+            else
+            {
+                printf("\033[34m%-6s\033[0m : %s\n",buf.Sendname,buf.Message);
+            }
         }
         //printf("Test\n");
     }
