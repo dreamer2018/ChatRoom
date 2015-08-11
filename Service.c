@@ -228,10 +228,13 @@ void Send_Message(message_node_t *buf)
 {
     int j;
     online_node_t *t;
-    t=head->next;
+    t=head;
+    //printf("Sendname:%s\n",buf->send_buf.Sendname);
+    //printf("Snend")
+    /*
     for(j=0;j<fd_count;j++)
     {
-        if (t->sock_fd==head->prev->sock_fd || !strcmp(t->name,buf->Sendname))
+        if (t->sock_fd==head->prev->sock_fd)
             continue;
         if(send(t->sock_fd,buf,sizeof(online_node_t),0)<0)
         {
@@ -239,28 +242,28 @@ void Send_Message(message_node_t *buf)
         }
         t=t->next;
     }
-    
-    /*
+    */
     switch(buf->flag)
     {
         case 3:
             for(j=0;j<fd_count;j++)
-            {
-                if (t->sock_fd==head->prev->sock_fd)
+            {          
+                t=t->next;
+                //printf("%d %s\n",j,buf->Sendname);
+                if (t->sock_fd==head->prev->sock_fd || !strcmp(t->name,buf->Sendname))
                     continue;
-                if(send(t->sock_fd,buf,sizeof(online_node_t),0)<0)
+                if(send(t->sock_fd,buf,sizeof(message_node_t),0)<0)
                 {
                     perror("send");
                 }
-                t=t->next;
             }
             break;
         case 4:
             for(j=0;j<fd_count;j++)
             {
-                if (t->sock_fd==head->prev->sock_fd||strcmp(t->name,buf->Recvname))
+                if (t->sock_fd==head->prev->sock_fd||strcmp(t->name,buf->Sendname))
                     continue;
-                if(send(t->sock_fd,buf,sizeof(online_node_t),0)<0)
+                if(send(t->sock_fd,buf,sizeof(message_node_t),0)<0)
                 {
                     perror("send");
                 }
@@ -268,8 +271,8 @@ void Send_Message(message_node_t *buf)
             }
             break;
     }
-    */
 }
+
 int main()
 {
     int sock_fd;
@@ -344,7 +347,6 @@ int main()
         {
             perror("select");
         }
-        
         for(fd=0;fd<fd_count;fd++)
         {
             if(flag!=1)
@@ -355,15 +357,22 @@ int main()
             {
                 if(s->sock_fd==sock_fd) //如果响应的是监听套接字，则说明是一个新的用户请求
                 {
+                    //使用vfork创建一个进程，用于进行密码注册用户或登录验证
                     clt_len=sizeof(struct sockaddr_in);
                     conn_fd=accept(s->sock_fd,(struct sockaddr *)&clt_sock,&clt_len);
-                    
-                    //使用vfork创建一个进程，用于进行密码注册用户或登录验证
-                    
-                    if(vpid=vfork()==0)
+                    printf("New connect %d",conn_fd);
+                    int sign=0;
+                    char newName[21];
+                    printf("test\n");
+                    vpid=vfork();
+                    if(vpid==0)
                     {
-                        int sign=0;
-                        char newName[21];
+                        
+                        //clt_len=sizeof(struct sockaddr_in);
+                        //conn_fd=accept(s->sock_fd,(struct sockaddr *)&clt_sock,&clt_len);
+                       // printf("New connect %d",conn_fd);
+                        //int sign=0;
+                        //char newName[21];
                         sign=Log_Service(conn_fd,newName);
                         
                         if(sign==1)
@@ -376,6 +385,14 @@ int main()
                             fd_count++;
                             printf("adding client on fd %d name:%s\n",p->sock_fd,p->name);
                         }
+                    }
+                    else if(vpid<0)
+                    {
+                        perror("vfork");
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
                 else  //否则，表示是已在线的用户出现操作
