@@ -49,7 +49,7 @@ typedef struct Message
     char Recvname[21];      // 接收者，系统为system ，所有人为everyone 
     char Message[BUFSIZE];      // 消息内容
     time_t Sendtime;        // 发送时间
-    struct Message *head;
+     struct Message *head;
     struct Message *prev;
 }
 */
@@ -261,13 +261,16 @@ void Send_Message(message_node_t *buf)
         case 4:
             for(j=0;j<fd_count;j++)
             {
-                if (t->sock_fd==head->prev->sock_fd||strcmp(t->name,buf->Sendname))
-                    continue;
-                if(send(t->sock_fd,buf,sizeof(message_node_t),0)<0)
-                {
-                    perror("send");
-                }
                 t=t->next;
+                printf("Test \n");
+                printf("%s",buf->Recvname);
+                if (!strcmp(t->name,buf->Recvname))
+                {
+                    if(send(t->sock_fd,buf,sizeof(message_node_t),0)<0)
+                    {
+                        perror("send");
+                    }
+                }
             }
             break;
     }
