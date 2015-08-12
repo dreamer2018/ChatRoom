@@ -9,6 +9,9 @@
 #ifndef _MY_ERROR_H
 #define _MY_ERROR_H
 
+static const char ERROR_DATA_FILE[]="./sys/Error.log";
+static const char Register_DATA_FILE[]="./sys/Register.log";
+
 typedef struct System_Error_log  //系统错误记录函数
 {
     time_t time;                //错误发生的时间
@@ -47,10 +50,29 @@ void Register_Log(int type,char *name,char *addr,char *message)
     strcpy(buf.message,message);
 }
 
-void Error_Perst_Log(error_node_t *buf)
+void Register_Persist_Log(error_node_t *buf)
 {
     FILE *fp;
-    fp=open()
+    struct tm *p;
+    p=localtime(&buf->time);
+    fp=fopen(ERROR_DATA_FILE,"a");
+    if(fp!=NULL)
+    {
+        fprintf("%d-%d-%d %d:%d:%d %d %s %s %s\n",p->tm_year+1900,p->tm_mon+1,p->tm_day,p->tm_hour,p->tm_min,p->tm_sec,buf->type,buf->name,buf->address,buf->message);
+    fclose(fp);
+    }
+}
+void Error_Persist_Log(register_node_t *buf)
+{
+    FILE *fp;
+    struct tm *p;
+    p=localtime(&buf->time);
+    fp=fopen(ERROR_DATA_FILE,"a");
+    if(fp!=NULL)
+    {
+        fprintf("%d-%d-%d %d:%d:%d %s %s %s\n",p->tm_year+1900,p->tm_mon+1,p->tm_day,p->tm_hour,p->tm_min,p->tm_sec,buf->name,buf->message);
+        fclose(fp);
+    }
 }
 
 #endif
