@@ -316,7 +316,7 @@ int main()
                 {
                     clt_len=sizeof(struct sockaddr_in);
                     conn_fd=accept(s->sock_fd,(struct sockaddr *)&clt_sock,&clt_len);
-                    printf("New connect %d",conn_fd);
+                    printf("New connect %d ip is %s",conn_fd,inet_ntoa(clt_sock.sin_addr));
                     int sign=0;
                     char newName[21];
                     sign=Log_Service(conn_fd,newName);
@@ -343,7 +343,7 @@ int main()
                         flag=1;
                         FD_CLR(r->sock_fd,&readfds);
                         close(r->sock_fd);                
-                        printf("removeing clinet on fd %d\n",fd);
+                        printf("removeing clinet on fd %d\n",r->sock_fd);
                         List_FreeNode(r);
                         fd_count--;
                     }
