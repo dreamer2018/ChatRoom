@@ -224,7 +224,7 @@ void Get_info(char *Nickname,char *Password)
     printf("Nickname:%s Password:%s\n",Nickname,Password);
 }
 
-int Register(int sock_fd)
+int Register(int sock_fd,struct sockaddr_in serv_addr)
 {
     int rtn=0;
     int i;
@@ -232,85 +232,97 @@ int Register(int sock_fd)
     message_node_t send_buf;
     time_t now; 
     char Nickname[21],Password[21];
-    for(i=0;;i++)
+    
+    Get_info(Nickname,Password);
+    memset(&send_buf,0,sizeof(message_node_t));
+    send_buf.flag=1;
+    strcpy(send_buf.Sendname,Nickname);
+    strcpy(send_buf.Recvname,Password);
+    strcpy(send_buf.Message,"Register");
+    time(&now);
+    send_buf.Sendtime=now;
+    printf("Test\n");
+    if(connect(sock_fd,(struct sockaddr *)&serv_addr,sizeof(struct sockaddr))<0)
     {
-        Get_info(Nickname,Password);
-        memset(&send_buf,0,sizeof(message_node_t));
-        send_buf.flag=1;
-        strcpy(send_buf.Sendname,Nickname);
-        strcpy(send_buf.Recvname,Password);
-        strcpy(send_buf.Message,"Register");
-        time(&now);
-        send_buf.Sendtime=now;
-        printf("Test\n");
-        if(send(sock_fd,&send_buf,sizeof(message_node_t),0)<0)
-        {
-            perror("send");
-            exit(0);
-        }
-        memset(&send_buf,0,sizeof(message_node_t));
-        if(recv(sock_fd,&recv_buf,sizeof(message_node_t),0)<0)
-        {
-            perror("recv");
-            exit(0);
-        }
-        if(!strncmp(recv_buf.Message,"Succ",4))
-        {
-            printf("Register Success !\n");
-            rtn=1;
-            break;
-        }
-        else
-        {
-            printf("%s\n",recv_buf.Message);
-        }
+        perror("connect");
+        exit(1);
+    }
+    printf("connected\n");
+    if(send(sock_fd,&send_buf,sizeof(message_node_t),0)<0)
+    {
+        perror("send");
+        exit(0);
+    }
+    memset(&send_buf,0,sizeof(message_node_t));
+    if(recv(sock_fd,&recv_buf,sizeof(message_node_t),0)<0)
+    {
+        perror("recv");
+        exit(0);
+    }
+    if(!strncmp(recv_buf.Message,"Succ",4))
+    {
+        printf("Register Success ! Please Login.....\n");
+        sleep(3);
+        rtn=1;
+    }
+    else
+    {
+        close(sock_fd);
+        printf("%s\n",recv_buf.Message);
     }
     return rtn;
 }
 
-int Sign_In(int sock_fd)
+int Sign_In(int sock_fd,struct sockaddr_in serv_addr)
 {
     int i;
+    int rtn=0;
     char Nickname[21],Password[21];
     time_t now;
     message_node_t recv_buf,send_buf;
-    for(i=0;i<3;i++)
+    printf("Please Input Your Nickname:");
+    //getname(Nickname);
+    scanf("%s",Nickname);
+    getchar();
+    printf("Please Input Your Password:");
+    passwd(Password);
+    send_buf.flag=2;
+    strcpy(send_buf.Sendname,Nickname);
+    strcpy(send_buf.Recvname,Password);
+    strcpy(send_buf.Message,"Sign in");
+    time(&now);
+    send_buf.Sendtime=now;
+    if(connect(sock_fd,(struct sockaddr *)&serv_addr,sizeof(struct sockaddr))<0)
     {
-        printf("Please Input Your Nickname:");
-        //getname(Nickname);
-        scanf("%s",Nickname);
-        getchar();
-        printf("Please Input Your Password:");
-        passwd(Password);
-        send_buf.flag=2;
-        strcpy(send_buf.Sendname,Nickname);
-        strcpy(send_buf.Recvname,Password);
-        strcpy(send_buf.Message,"Sign in");
-        time(&now);
-        send_buf.Sendtime=now;
-        if(send(sock_fd,&send_buf,sizeof(message_node_t),0)<0)
-        {
-            perror("send");
-            exit(0);
-        }
-        
-        if(recv(sock_fd,&recv_buf,sizeof(message_node_t),0)<0)
-        {
-            perror("send");
-            exit(0);
-        }
-        if(!strncmp(recv_buf.Message,"Succ",4))
-        {
-            strcpy(UserName,recv_buf.Recvname);
-            printf("Signin Success \n");
-            break;
-        }
-        else
-        {
-            printf("Nickname Or Password Error\n");
-            printf("Please Try Again\n");
-        }
+        perror("connect");
+        exit(1);
     }
+
+    printf("connected\n");
+ 
+    if(send(sock_fd,&send_buf,sizeof(message_node_t),0)<0)
+    {
+        perror("send");
+        exit(0);
+    }
+        
+    if(recv(sock_fd,&recv_buf,sizeof(message_node_t),0)<0)
+    {
+        perror("send");
+        exit(0);
+    }
+        
+    if(!strncmp(recv_buf.Message,"Succ",4))
+    {
+        strcpy(UserName,recv_buf.Recvname);
+        printf("Signin Success !\n");
+        rtn=1;
+    }
+    else
+    {
+        close(sock_fd);
+    }
+    return rtn;
 }
 
 void print_time(time_t st_time) //日期解析函数
@@ -417,27 +429,48 @@ int Chatting_Function(int sign,int argc,char *argv[])
         exit(1);
     }
 
-    conn_fd=socket(AF_INET,SOCK_STREAM,0);
+    //conn_fd=socket(AF_INET,SOCK_STREAM,0);
     
     if(conn_fd<0)
     {
         perror("socket");
     }
     
-    if(connect(conn_fd,(struct sockaddr *)&serv_addr,sizeof(struct sockaddr))<0)
-    {
-        perror("connect");
-        exit(1);
-    }
-
-    printf("connected\n");
     if(sign==1)
     {
-        return Register(conn_fd);
+        while(1)
+        {
+            conn_fd=socket(AF_INET,SOCK_STREAM,0);
+            if(Register(conn_fd,serv_addr))
+            {
+                return 1;
+            }
+        }
     }
     else if(sign==2)
     {
-        Sign_In(conn_fd);       
+       for(i=2;i>=0;i--)
+        {
+            conn_fd=socket(AF_INET,SOCK_STREAM,0);
+            if(Sign_In(conn_fd,serv_addr))
+            {
+                break;
+            }
+            else
+            {
+                if(i>0)
+                {
+                    printf("Nickname Or Password Error\n");
+                    printf("You Have %d Chance,Please Try Again\n",i);   
+                }
+                else
+                {
+                    printf("Entered An Incorrect Password Three Times,To Quit !\n");
+                    sleep(3);
+                    return 0;
+                }
+            }
+        }
     }
 
     pthread_create(&tid1,NULL,threadsend,&conn_fd);
@@ -555,8 +588,7 @@ void *threadrecv(void *vargp)
             print_time(buf.Sendtime);
             if(buf.flag==4)
             {
-
-                printf("\033[34m%-6s\033[0m :\033[35m %s\033[0m\n",buf.Sendname,buf.Message);
+                printf("\033[45m%-6s\033[0m :\033[35m %s\033[0m\n",buf.Sendname,buf.Message);
             }
             else
             {
