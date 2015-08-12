@@ -14,7 +14,7 @@
 #include<netinet/in.h>
 #include<string.h>
 #include<arpa/inet.h>
-#include<error.h>
+#include<errno.h>
 #include<sys/time.h>
 #include<sys/ioctl.h>
 #include<time.h>
