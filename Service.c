@@ -39,16 +39,19 @@
 #include"my_error.h"
 
 /*
- *  my_error.h 封装了所有的
- *
+ *  my_error.h 封装了所有的系统日志文件，包括：
+ *  void Error_Log(char *name,char *message)    //错误处理函数，name为出错时的用户名，message为出错信息
+ *  void Register_Log(int type,char *name,char *addr,char *message)  //type为记录的类型,0为注册，1为登录
+ *  void Register_Persist_Log(error_node_t *buf)     //登录/注册信息文件写入函数
+ *  void Error_Persist_Log(register_node_t *buf)     //错误信息写入函数
  */
 
 
 //宏定义
 
 #define SERV_PORT 8080      //端口
-#define MAX_LIST 10         //最长等待序列
-#define BUFSIZE 1024        //缓冲区大小
+#define MAX_LIST 20         //最长等待序列
+
 //交互信息结构体
 
 /*
@@ -79,6 +82,7 @@ typedef struct On_Line
 //在线用户数量
 
 int fd_count=0;
+extern int errno;
 
 //在线用户链表头结点（全局变量）
 
@@ -90,8 +94,6 @@ int Info_Match(char *name,char *passwd)  //信息匹配函数，用于进行密�
     message_node_t buf;
     if(UserInfo_Perst_Select(name,&buf))
     {
-        printf("name: %s passwd:%s\n",buf.Sendname,buf.Recvname);
-        printf("Name: %s Passwd:%s\n",name,passwd);
         if(!strcmp(buf.Recvname,passwd))
         {
             rtn=1;
@@ -100,15 +102,14 @@ int Info_Match(char *name,char *passwd)  //信息匹配函数，用于进行密�
     return rtn;
 }
 
-int Log_Service(int conn_fd,char *newName) //登录/注册信息服务函数
+int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息服务函数
 {
     int rtn=0;
     message_node_t recv_buf,send_buf;
     time_t now;
-    printf("Test conn_fd=%d\n",conn_fd);
     if(recv(conn_fd,&recv_buf,sizeof(message_node_t),0)<0)
     {
-        perror("recv");
+        Error_Log("recv: ",strerror(errno));
         exit(0);
     }
     switch(recv_buf.flag)
@@ -121,10 +122,11 @@ int Log_Service(int conn_fd,char *newName) //登录/注册信息服务函数
                 strcpy(send_buf.Recvname,recv_buf.Sendname);
                 time(&now);
                 send_buf.Sendtime=now;
-                strcpy(send_buf.Message,"Your Nickname Already Exists! Please Try Again....");
+                strcpy(send_buf.Message,"Your Nickname Already Exists! Please Try Again....");    
+                Register_Log(0,recv_buf.Sendname,address,"Nickname Already Exists");
                 if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
                 {
-                    perror("send");
+                    Error_Log("send: ",strerror(errno));
                     exit(0);
                 }
             }
@@ -141,7 +143,7 @@ int Log_Service(int conn_fd,char *newName) //登录/注册信息服务函数
                     strcpy(newName,recv_buf.Sendname);
                     if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
                     {
-                        perror("send");
+                        Error_Log("send: ",strerror(errno));
                         exit(0);
                     }
                     else
@@ -154,7 +156,7 @@ int Log_Service(int conn_fd,char *newName) //登录/注册信息服务函数
                         strcpy(send_buf.Message,"Writing To File Fail !");
                         if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
                         {
-                            perror("send");
+                            Error_Log("send: ",strerror(errno));
                             exit(0);
                         }
                     }
@@ -163,7 +165,6 @@ int Log_Service(int conn_fd,char *newName) //登录/注册信息服务函数
             close(conn_fd);
             break;
         case 2:
-            printf("Service Test \n");
             if(Info_Match(recv_buf.Sendname,recv_buf.Recvname))
             {
                 send_buf.flag=0;
@@ -175,7 +176,7 @@ int Log_Service(int conn_fd,char *newName) //登录/注册信息服务函数
                 printf("Sign in success \n");
                 if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
                 {
-                    perror("send");
+                    Error_Log("send: ",strerror(errno));
                     exit(0);
                 }
                 strcpy(newName,recv_buf.Sendname);
@@ -192,7 +193,7 @@ int Log_Service(int conn_fd,char *newName) //登录/注册信息服务函数
                 printf("%s\n",send_buf.Message);
                 if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
                 {
-                    perror("send");
+                    Error_Log("send: ",strerror(errno));
                     exit(0);
                 }
                 
@@ -212,12 +213,12 @@ void Send_Message(message_node_t *buf)
             for(j=0;j<fd_count;j++)
             {          
                 t=t->next;
-                //printf("%d %s\n",j,buf->Sendname);
                 if (t->sock_fd==head->prev->sock_fd || !strcmp(t->name,buf->Sendname))
                     continue;
                 if(send(t->sock_fd,buf,sizeof(message_node_t),0)<0)
                 {
-                    perror("send");
+                    Error_Log("send: ",strerror(errno));
+                    exit(0);
                 }
             }
             break;
@@ -225,13 +226,13 @@ void Send_Message(message_node_t *buf)
             for(j=0;j<fd_count;j++)
             {
                 t=t->next;
-                printf("Test \n");
                 printf("%s",buf->Recvname);
                 if (!strcmp(t->name,buf->Recvname))
                 {
                     if(send(t->sock_fd,buf,sizeof(message_node_t),0)<0)
                     {
-                        perror("send");
+                        Error_Log("send: ",strerror(errno));
+                        exit(0);
                     }
                 }
             }
@@ -260,7 +261,7 @@ int main()
     sock_fd=socket(AF_INET,SOCK_STREAM,0);
     if(sock_fd<0)
     {
-        perror("socket");
+        Error_Log("socket: ",strerror(errno));
     }
 
     //设置该套接字使之可以重新绑定
@@ -268,7 +269,7 @@ int main()
     
     if(setsockopt(sock_fd,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(int))<0)
     {
-        perror("setsockopt");
+        Error_Log("setsockopt: ",strerror(errno));
     }
     
     //初始化本地端               
@@ -281,13 +282,13 @@ int main()
     //绑定套接字到本地端
     if(bind(sock_fd,(struct sockaddr *)&srv_sock,sizeof(struct sockaddr_in ))<0)
     {
-        perror("bind");
+        Error_Log("bind: ",strerror(errno));
     }
     
     //设置监听
     if(listen(sock_fd,MAX_LIST)<0)
     {
-        perror("listen");
+        Error_Log("listen: ",strerror(errno));
     }
     
     p=(online_node_t *)malloc(sizeof(online_node_t));
@@ -313,14 +314,13 @@ int main()
         ret=select(MAX_LIST, &testfds ,(fd_set *)0,(fd_set *)0,(struct timeval *)0);
         if(ret<0)
         {
-            perror("select");
+            Error_Log("select: ",strerror(errno));
         }
         for(fd=0;fd<fd_count;fd++)
         {
             if(flag!=1)
                 s=s->next;
             flag=0;
-            printf(" %d name:%s  sock_fd:%d\n",fd,s->name,s->sock_fd);
             if(FD_ISSET(s->sock_fd,&testfds))  //检测出现响应的在不在在线用户链表中，不在责不进行操作，直接跳过
             {
                 if(s->sock_fd==sock_fd) //如果响应的是监听套接字，则说明是一个新的用户请求
@@ -330,7 +330,7 @@ int main()
                     printf("New connect %d ip is %s",conn_fd,inet_ntoa(clt_sock.sin_addr));
                     int sign=0;
                     char newName[21];
-                    sign=Log_Service(conn_fd,newName);
+                    sign=Log_Service(conn_fd,newName,inet_ntoa(clt_sock.sin_addr));
                     if(sign==1)
                     {
                         p=(online_node_t *)malloc(sizeof(online_node_t));
@@ -365,7 +365,6 @@ int main()
                             Send_Message(&recv_buf);
                             exit(0);
                         }
-                        //printf("recv = %s",recv_buf);
                     }
                 }
             }
