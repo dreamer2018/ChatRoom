@@ -75,6 +75,7 @@ typedef struct On_Line
 {
     char name[21];    //在线的用户名
     int sock_fd;      //在线用户套接字描述符
+    char address[20]; //在线用户ip
     struct On_Line *next;
     struct On_Line *prev;
 } online_node_t;
@@ -176,7 +177,7 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
                 time(&now);
                 send_buf.Sendtime=now;
                 strcpy(send_buf.Message,"Success");
-                               
+                Register_Log(1,recv_buf.Sendname,address,"login success");             
                 if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
                 {
                     Error_Log("send: ",strerror(errno));
@@ -193,7 +194,7 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
                 time(&now);
                 send_buf.Sendtime=now;
                 strcpy(send_buf.Message,"ERROR Incorrect Username Or Password!");
-                Register_Log(1,"")
+                Register_Log(1,recv_buf.Sendname,address,"ERROR Incorrect Username Or Password");
                 if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
                 {
                     Error_Log("send: ",strerror(errno));
@@ -296,6 +297,7 @@ int main()
     p=(online_node_t *)malloc(sizeof(online_node_t));
     strcpy(p->name,"system");
     p->sock_fd=sock_fd;
+    strcpy(p->address,"127.0.0.1");
     List_AddHead(head,p);
     fd_count++;
     srv_len=sizeof(struct sockaddr_in);
@@ -338,6 +340,7 @@ int main()
                         p=(online_node_t *)malloc(sizeof(online_node_t));
                         strcpy(p->name,newName);
                         p->sock_fd=conn_fd;
+                        strcpy(p->address,inet_ntoa(clt_sock.sin_addr));
                         List_AddHead(head,p);                     
                         FD_SET(p->sock_fd,&readfds);
                         fd_count++;
@@ -356,6 +359,7 @@ int main()
                         flag=1;
                         FD_CLR(r->sock_fd,&readfds);
                         close(r->sock_fd);                
+                        Register_Log(2,r->name,r->address,"log out");
                         printf("removeing clinet on fd %d\n",r->sock_fd);
                         List_FreeNode(r);
                         fd_count--;
