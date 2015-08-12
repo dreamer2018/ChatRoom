@@ -19,12 +19,15 @@
 #include<sys/ioctl.h>
 #include<time.h>
 
+#include"List.h"
+
 /*
  * List为自定义的头文件，里面包含了对单向链表的操作：
  * List_Init(head,list_node_t)  单向链表初始化宏定义
  * List_AddHead(head,newNode)   单项链表头插发宏定义
 */
-#include"List.h"
+
+#include"Persist.h"
 
 /*
  *  Persits.h 封装了部分文件操作函数，具体如下：
@@ -33,7 +36,14 @@
  *  int Play_Perst_Update(const message_node_t *data)  ////将参数所指向的新信息写入到文件中，返回0表示操作失败，返回1表示操作成功
  */
 
-#include"Persist.h"
+#include"my_error.h"
+
+/*
+ *  my_error.h 封装了所有的
+ *
+ */
+
+
 //宏定义
 
 #define SERV_PORT 8080      //端口
