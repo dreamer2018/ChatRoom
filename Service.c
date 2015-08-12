@@ -141,6 +141,7 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
                     send_buf.Sendtime=now;
                     strcpy(send_buf.Message,"Success");
                     strcpy(newName,recv_buf.Sendname);
+                    Register_Log(0,recv_buf.Sendname,address,"register success");
                     if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
                     {
                         Error_Log("send: ",strerror(errno));
@@ -154,6 +155,8 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
                         time(&now);
                         send_buf.Sendtime=now;
                         strcpy(send_buf.Message,"Writing To File Fail !");
+                        Error_Log("Register_Persist: ","Writing To File Fail");
+                        Register_Log(0,recv_buf.Sendname,address,"register fail,Writing To File Fail");
                         if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
                         {
                             Error_Log("send: ",strerror(errno));
@@ -173,7 +176,7 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
                 time(&now);
                 send_buf.Sendtime=now;
                 strcpy(send_buf.Message,"Success");
-                printf("Sign in success \n");
+                               
                 if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
                 {
                     Error_Log("send: ",strerror(errno));
@@ -190,13 +193,12 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
                 time(&now);
                 send_buf.Sendtime=now;
                 strcpy(send_buf.Message,"ERROR Incorrect Username Or Password!");
-                printf("%s\n",send_buf.Message);
+                Register_Log(1,"")
                 if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
                 {
                     Error_Log("send: ",strerror(errno));
                     exit(0);
                 }
-                
             }
     }
     return rtn;
