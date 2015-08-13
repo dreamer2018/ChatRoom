@@ -9,8 +9,50 @@
 #ifndef _PERSIST_H
 #define _PERSIST_H
 
-static const char USERINFO_DATA_FILE[] = "UserInfo.dat";
+static const char USERINFO_DATA_FILE[] = "./data/UserInfo.dat";
 
+int exists(char *path)
+{
+    FILE *fp;
+    //printf("%s\n",path);
+    fp=fopen(path,"rb");
+    if(fp==NULL)
+    {
+        return 0;
+    }
+    else
+    {
+        fclose(fp);
+        return 1;
+    }
+}
+
+void system_init()
+{
+    int i;
+    char path[][20]={{"./sys/"},{"./user/"},{"./data/"},{"./user/group"}};
+    char command[30];
+    
+    char mkfile[][30]={"touch ./sys/Error.log","touch ./sys/Register.log","touch ./user/group/Chat.dat","touch ./data/UserInfo.dat"};
+    
+    for(i=0;i<4;i++)
+    {
+        if(!exists(path[i]))
+        {
+            memset(command,0,sizeof(command));
+            strcpy(command,"mkdir ");
+            strcat(command,path[i]);
+            system(command);
+        }
+    }
+    for(i=0;i<4;i++)
+    {
+        if(!exists(mkfile[i]))
+        {
+            system(mkfile[i]);
+        }
+    }
+}
 int Register_Persist(message_node_t *data)  //用户信息写入函数,返回1 表示操作成功，0 表示操作失败
 {
     int rtn=0;
