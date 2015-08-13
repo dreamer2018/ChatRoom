@@ -204,14 +204,40 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
     }
     return rtn;
 }
+void System_command(message_node_t *buf)
+{
+    int i;
+    online_node_t *p;
+    p=head;
+    time_t now;
+    if(!strncmp(buf->Message,"quit",4))
+    {
+        for(i=0;i<fd_count;i++)
+        {
+            p=p->next;
+            if (!strcmp(p->name,buf->Sendname))
+            {
+                time(&now);
+                buf->Sendtime=now;
+                if(send(p->sock_fd,buf,sizeof(message_node_t),0)<0)
+                {
+                    Error_Log("send: ",strerror(errno));
+                    exit(0);
+                }
+            }
+        } 
+    }
+}
 void Send_Message(message_node_t *buf)
 {
     int j;
     online_node_t *t;
-    t=head;
-   
+    t=head; 
     switch(buf->flag)
     {
+        case 0:
+            System_command(buf);
+            break;
         case 3:
             for(j=0;j<fd_count;j++)
             {          
@@ -229,7 +255,6 @@ void Send_Message(message_node_t *buf)
             for(j=0;j<fd_count;j++)
             {
                 t=t->next;
-                printf("%s",buf->Recvname);
                 if (!strcmp(t->name,buf->Recvname))
                 {
                     if(send(t->sock_fd,buf,sizeof(message_node_t),0)<0)
@@ -345,6 +370,33 @@ int main()
                         FD_SET(p->sock_fd,&readfds);
                         fd_count++;
                         printf("adding client on fd %d name:%s\n",p->sock_fd,p->name);
+                        if((pid=fork())==0)
+                        {
+                            message_node_t buf;
+                            online_node_t *t;
+                            int j;
+                            t=head;
+                            time_t now;
+                            time(&now);
+                            buf.Sendtime=now;
+                            buf.flag=3;
+                            strcpy(buf.Sendname,"system");
+                            strcpy(buf.Recvname,"everyone");
+                            strcpy(buf.Message,newName);
+                            strcat(buf.Message," Little Friend Online,Hurry To Chatting With Him/Her !");
+                            for(j=0;j<fd_count;j++)
+                            {          
+                                t=t->next;
+                                if (t->sock_fd==head->prev->sock_fd || !strcmp(t->name,newName))
+                                    continue;
+                                if(send(t->sock_fd,&buf,sizeof(message_node_t),0)<0)
+                                {
+                                    Error_Log("send: ",strerror(errno));
+                                    exit(0);
+                                }   
+                            }
+                            exit(0);
+                        }
                     }
                 }
                 else  //否则，表示是已在线的用户出现操作
@@ -353,16 +405,46 @@ int main()
                     nread = recv(s->sock_fd,&recv_buf,sizeof(message_node_t),0); //接受用户发送来的数据
                     if(nread==0) //如果数据长度为零，则表示用户离开
                     {
+                        char OffName[21];
                         online_node_t *r;
                         r=s;
                         s=s->next;
                         flag=1;
+                        strcpy(OffName,r->name);
                         FD_CLR(r->sock_fd,&readfds);
                         close(r->sock_fd);                
                         Register_Log(2,r->name,r->address,"log out");
                         printf("removeing clinet on fd %d\n",r->sock_fd);
                         List_FreeNode(r);
                         fd_count--;
+                        //创建一个新的线程，用于给所有用户发送用户离线提醒
+                        if((pid=fork())==0)
+                        {
+                            message_node_t buf;
+                            online_node_t *t;
+                            int j;
+                            t=head;
+                            time_t now;
+                            time(&now);
+                            buf.Sendtime=now;
+                            buf.flag=3;
+                            strcpy(buf.Sendname,"system");
+                            strcpy(buf.Recvname,"everyone");
+                            strcpy(buf.Message,OffName);
+                            strcat(buf.Message," Little Friend Offline!");
+                            for(j=0;j<fd_count;j++)
+                            {          
+                                t=t->next;
+                                if (t->sock_fd==head->prev->sock_fd )
+                                    continue;
+                                if(send(t->sock_fd,&buf,sizeof(message_node_t),0)<0)
+                                {
+                                    Error_Log("send: ",strerror(errno));
+                                    exit(0);
+                                }   
+                            }
+                            exit(0); //发送完成后，进程关闭
+                        }
                     }
                     else 
                     {
