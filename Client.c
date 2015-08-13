@@ -25,7 +25,7 @@
 #define STRMAX 100
 
 
-#define BUFMAX 1024
+#define BUFMAX 512
 
 //函数声明部分
 char UserName[21];
@@ -121,7 +121,6 @@ int Chatting_Service()
                 break; 
             case '4':
 		        return 0;       
-                break;
 		}
 	}while(flag);
 }
@@ -205,10 +204,25 @@ int getpasswd(char *password)
 void Get_info(char *Nickname,char *Password)
 {
     int i,j;
-    printf("Please Input Your Nickname:");
-    //getname(Nickname);
-    scanf("%s",Nickname);
-    getchar();
+    char buf[BUFMAX];
+    while(1)
+    {
+        printf("Please Input Your Nickname:");
+        scanf("%s",buf);
+        getchar();
+        if(strlen(buf)>20)
+        {
+            printf("Nickname Length 20,Please Input Again !\n");
+         
+        }
+        else
+        {
+            strncpy(Nickname,buf,20);
+            Nickname[20]='\0';
+            break;
+        }
+    }
+    
     for(i=0;i<10;i++)
     {
         if(!getpasswd(Password))
@@ -244,13 +258,11 @@ int Register(int sock_fd,struct sockaddr_in serv_addr)
     strcpy(send_buf.Message,"Register");
     time(&now);
     send_buf.Sendtime=now;
-    printf("Test\n");
     if(connect(sock_fd,(struct sockaddr *)&serv_addr,sizeof(struct sockaddr))<0)
     {
         perror("connect");
         exit(1);
     }
-    printf("connected\n");
     if(send(sock_fd,&send_buf,sizeof(message_node_t),0)<0)
     {
         perror("send");
@@ -270,21 +282,20 @@ int Register(int sock_fd,struct sockaddr_in serv_addr)
     }
     else
     {
-        close(sock_fd);
         printf("%s\n",recv_buf.Message);
+        close(sock_fd);
     }
     return rtn;
 }
 
-int Sign_In(int sock_fd,struct sockaddr_in serv_addr)
+int Sign_In(int sock_fd,struct sockaddr_in serv_addr,message_node_t *recv_buf)
 {
     int i;
     int rtn=0;
     char Nickname[21],Password[21];
     time_t now;
-    message_node_t recv_buf,send_buf;
+    message_node_t send_buf;
     printf("Please Input Your Nickname:");
-    //getname(Nickname);
     scanf("%s",Nickname);
     getchar();
     printf("Please Input Your Password:");
@@ -301,23 +312,21 @@ int Sign_In(int sock_fd,struct sockaddr_in serv_addr)
         exit(1);
     }
 
-    printf("connected\n");
- 
     if(send(sock_fd,&send_buf,sizeof(message_node_t),0)<0)
     {
         perror("send");
         exit(0);
     }
         
-    if(recv(sock_fd,&recv_buf,sizeof(message_node_t),0)<0)
+    if(recv(sock_fd,recv_buf,sizeof(message_node_t),0)<0)
     {
         perror("send");
         exit(0);
     }
         
-    if(!strncmp(recv_buf.Message,"Succ",4))
+    if(!strncmp(recv_buf->Message,"Succ",4))
     {
-        strcpy(UserName,recv_buf.Recvname);
+        strcpy(UserName,recv_buf->Recvname);
         printf("Signin Success !\n");
         rtn=1;
     }
@@ -433,13 +442,6 @@ int Login_Service(int sign,int argc,char *argv[])
         exit(1);
     }
 
-    //conn_fd=socket(AF_INET,SOCK_STREAM,0);
-    
-    //if(conn_fd<0)
-    //{
-      //  perror("socket");
-    //}
-    
     if(sign==1)
     {
         while(1)
@@ -453,27 +455,29 @@ int Login_Service(int sign,int argc,char *argv[])
     }
     else if(sign==2)
     {
-       for(i=2;i>=0;i--)
+        message_node_t buf;
+        for(i=2;i>=0;i--)
         {
             conn_fd=socket(AF_INET,SOCK_STREAM,0);
-            if(Sign_In(conn_fd,serv_addr))
+            if(Sign_In(conn_fd,serv_addr,&buf))
             {
                 break;
             }
             else
             {
+                printf("\033[35m%s\n\033[0m",buf.Message);
                 if(i>0)
                 {
-                    printf("Nickname Or Password Error\n");
-                    printf("You Have %d Chance,Please Try Again\n",i);   
+                    printf("You Have %d Chance,Please Try Again\n\n",i);   
                 }
                 else
                 {
-                    printf("Entered An Incorrect Password Three Times,To Quit !\n");
+                    printf("Entered An Incorrect Password Three Times,To Quit !\n\n");
                     sleep(3);
                     return -1;
                 }
             }
+            memset(&buf,0,sizeof(message_node_t));
         }
     }
     if(Chatting_Service())
@@ -481,27 +485,11 @@ int Login_Service(int sign,int argc,char *argv[])
         pthread_create(&tid1,NULL,threadsend,&conn_fd);
         pthread_create(&tid2,NULL,threadrecv,&conn_fd);
         pthread_join(tid2,(void *)&status);
-            //pthread_exit(0);
     }
     else
     {
         return 0;
     }
-}
-int  Chatting_Function(int conn_fd)
-{
-    int status;
-    pthread_t tid1,tid2;
-    //if(vfork()==0)
-    //{
-        pthread_create(&tid1,NULL,threadsend,&conn_fd);
-        pthread_create(&tid2,NULL,threadrecv,&conn_fd);
-        pthread_join(tid2,(void *)&status);
-        pthread_exit(0);
-        //close(conn_fd);
-        //exit(0);
-    //}
-    //return 0;
 }
 
 void *threadsend(void * vargp)
