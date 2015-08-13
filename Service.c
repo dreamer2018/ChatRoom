@@ -281,7 +281,7 @@ int main()
     struct sockaddr_in srv_sock,clt_sock;
     message_node_t recv_buf;
     online_node_t *p;
-    system_init();
+    System_Init();
     List_Init(head,online_node_t);
     fd_set readfds,testfds;
     
