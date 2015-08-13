@@ -148,21 +148,21 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
                         Error_Log("send: ",strerror(errno));
                         exit(0);
                     }
-                    else
-                    {      
-                        send_buf.flag=0;
-                        strcpy(send_buf.Sendname,"system");
-                        strcpy(send_buf.Recvname,recv_buf.Sendname);
-                        time(&now);
-                        send_buf.Sendtime=now;
-                        strcpy(send_buf.Message,"Writing To File Fail !");
-                        Error_Log("Register_Persist: ","Writing To File Fail");
-                        Register_Log(0,recv_buf.Sendname,address,"register fail,Writing To File Fail");
-                        if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
-                        {
-                            Error_Log("send: ",strerror(errno));
-                            exit(0);
-                        }
+                }
+                else
+                {      
+                    send_buf.flag=0;
+                    strcpy(send_buf.Sendname,"system");
+                    strcpy(send_buf.Recvname,recv_buf.Sendname);
+                    time(&now);
+                    send_buf.Sendtime=now;
+                    strcpy(send_buf.Message,"Writing To File Fail !");
+                    Error_Log("Register_Persist: ","Writing To File Fail");
+                    Register_Log(0,recv_buf.Sendname,address,"register fail,Writing To File Fail");
+                    if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
+                    {
+                        Error_Log("send: ",strerror(errno));
+                        exit(0);
                     }
                 }
             }
@@ -377,4 +377,3 @@ int main()
         }
     }
 }
-
