@@ -73,17 +73,7 @@ int User_Init(char *user_name)
         system(command2);
     }
 }
-int User_Init(char *user_name)
-{
-    char path[30]="./user/";
-    char command1[40]="mkdir ";
-    char command2[40]="touch ";
-    strcat(path,user_name);
-    if(!Exists(path))
-    {
-        strcat(command1,path);
-    }
-}
+
 int Register_Persist(message_node_t *data)  //用户信息写入函数,返回1 表示操作成功，0 表示操作失败
 {
     int rtn=0;
