@@ -34,7 +34,7 @@ int System_Init()
     char path[][20]={"./sys/","./user/","./data/","./user/group","./user/offline"};
     char command[50];
     
-    char mkfile[][40]={"touch ./sys/Error.log","touch ./sys/Register.log","touch ./user/group/Chat.dat","touch ./data/UserInfo.dat","touch ./user/offline/OffLine.dat"};
+    char mkfile[][40]={"touch ./sys/Error.log","touch ./sys/Register.log","touch ./user/group/Chat.dat","touch ./data/UserInfo.dat","touch ./user/offline/OffLine.dat","touch ./sys/Help.ini"};
     
     for(i=0;i<5;i++)
     {
@@ -46,7 +46,7 @@ int System_Init()
             system(command);
         }
     }
-    for(i=0;i<5;i++)
+    for(i=0;i<6;i++)
     {
         if(!Exists(mkfile[i]))
         {
@@ -78,5 +78,6 @@ int main()
 {
     System_Init();
     User_Init("zhoufre");
+    system("cat file_test.c");
 }
 
