@@ -30,12 +30,12 @@ int exists(char *path)
 void system_init()
 {
     int i;
-    char path[][20]={{"./sys/"},{"./user/"},{"./data/"},{"./user/group"}};
-    char command[30];
+    char path[][20]={"./sys/","./user/","./data/","./user/group","./user/offline"};
+    char command[50];
     
-    char mkfile[][30]={"touch ./sys/Error.log","touch ./sys/Register.log","touch ./user/group/Chat.dat","touch ./data/UserInfo.dat"};
+    char mkfile[][40]={"touch ./sys/Error.log","touch ./sys/Register.log","touch ./user/group/Chat.dat","touch ./data/UserInfo.dat","touch ./user/offline/OffLine.dat"};
     
-    for(i=0;i<4;i++)
+    for(i=0;i<5;i++)
     {
         if(!exists(path[i]))
         {
@@ -45,7 +45,7 @@ void system_init()
             system(command);
         }
     }
-    for(i=0;i<4;i++)
+    for(i=0;i<5;i++)
     {
         if(!exists(mkfile[i]))
         {
