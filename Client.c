@@ -18,6 +18,7 @@
 #include"conio.h"
 #include"List.h"
 #include<time.h>
+#include<pthread.h>
 //#include"Persist.h"
 
 
@@ -28,12 +29,12 @@
 
 //函数声明部分
 char UserName[21];
+int exit_sign=0;
 
 
 
-
-int Chatting_Function(int flag,int argc,char *argv[]);
-void Chat_Records_Query();
+int Chatting_Function(int conn_fd);
+int Login_Service(int sign,int argc,char *argv[]);
 void *threadrecv(void *vargp);
 void *threadsend(void *vargp);
 
@@ -59,10 +60,9 @@ int main(int argc,char *argv[]) //主函数
         printf("\t\t=+               Welcome To Chat Room                 +=\n");
         printf("\t\t=+----------------------------------------------------+=\n");
         printf("\t\t=+                                                    +=\n");
-        printf("\t\t=+          1.     Register Now                       +=\n");  //注册函数
-        printf("\t\t=+          2.     Chat     Now                       +=\n");  //登录聊天函数
-        printf("\t\t=+          3.  Look Chatting Records                 +=\n");  //聊天记录查询函数
-        printf("\t\t=+          4.        exit                            +=\n");  
+        printf("\t\t=+          1.     Register Now                       +=\n");  //注册入口
+        printf("\t\t=+          2.     Sign     In                        +=\n");  //登录入口
+        printf("\t\t=+          3.        exit                            +=\n");  
         printf("\t\t=+                                                    +=\n");  
         printf("\t\t======================================================+=\n");
         printf("\t\tPlease Input Your Choice :");
@@ -72,17 +72,14 @@ int main(int argc,char *argv[]) //主函数
             case '1':
                 sign=1;
                 system("clear");
-                Chatting_Function(sign,argc,argv);
+                Login_Service(sign,argc,argv);
                 break;
             case '2':
                 sign=2;
                 system("clear");
-                Chatting_Function(sign,argc,argv);
+                Login_Service(sign,argc,argv);
                 break;
             case '3':
-                Chat_Records_Query();
-                break;
-            case '4':
                 flag=0;
                 break;
         }
@@ -90,7 +87,7 @@ int main(int argc,char *argv[]) //主函数
     }while(flag);
     printf("\n");
 }
-void Chat_Records_Query()
+int Chatting_Service()
 {
     int flag=1;
     char ch;
@@ -99,12 +96,13 @@ void Chat_Records_Query()
         system("clear");
 	    printf("\t\t========================================================\n");
 	    printf("\t\t=++++++++++++++++++++++++++++++++++++++++++++++++++++++=\n");
-	    printf("\t\t=+               Chat Records Query                   +=\n");
+	    printf("\t\t=+               Chatting Service                     +=\n");
 	    printf("\t\t=+----------------------------------------------------+=\n");
 	    printf("\t\t=+                                                    +=\n");
-	    printf("\t\t=+          1.  Group  Chat  Records                  +=\n");  //群聊记录
-	    printf("\t\t=+          2.  Private Chat Records                  +=\n");  //私聊记录
-	    printf("\t\t=+          3. Return  Previous  Step                 +=\n");  //返回上一步
+	    printf("\t\t=+          1.     Chat       Now                     +=\n");  //开始聊天
+	    printf("\t\t=+          2.  Group  Chat  Records                  +=\n");  //群聊记录
+	    printf("\t\t=+          3.  Private Chat Records                  +=\n");  //私聊记录
+	    printf("\t\t=+          4. Return  Previous  Step                 +=\n");  //返回上一步
 	    printf("\t\t=+                                                    +=\n");
 	    printf("\t\t========================================================\n");
 	    printf("\t\tPlease Input Your Choice :");
@@ -112,13 +110,18 @@ void Chat_Records_Query()
 	    switch(ch)
 	    {
 	    	case '1':
-		        break;
-		    case '2':
+		        system("clear");
+                return 1;
+                //Chatting_Function(conn_fd);
+		        //break;
+            case '2':
 		            ;
 		        break;
 		    case '3':
-		        flag=0;
-		        break;
+                break; 
+            case '4':
+		        return 0;       
+                break;
 		}
 	}while(flag);
 }
@@ -372,7 +375,7 @@ void print_time(time_t st_time) //日期解析函数
     }
 }
 
-int Chatting_Function(int sign,int argc,char *argv[])
+int Login_Service(int sign,int argc,char *argv[])
 {   
     int i;
     int ret;
@@ -381,6 +384,7 @@ int Chatting_Function(int sign,int argc,char *argv[])
     int *clientfdp;
     int status;
     pthread_t tid1,tid2;
+    int flag;
     clientfdp=(int *)malloc(sizeof(int));
     struct sockaddr_in serv_addr;
     char recv_buf[BUFMAX];
@@ -421,7 +425,7 @@ int Chatting_Function(int sign,int argc,char *argv[])
             continue;
         }
     }
-
+    
     //检测数否少输入了某项参数 
     if(serv_addr.sin_port==0||serv_addr.sin_addr.s_addr==0)
     {
@@ -431,10 +435,10 @@ int Chatting_Function(int sign,int argc,char *argv[])
 
     //conn_fd=socket(AF_INET,SOCK_STREAM,0);
     
-    if(conn_fd<0)
-    {
-        perror("socket");
-    }
+    //if(conn_fd<0)
+    //{
+      //  perror("socket");
+    //}
     
     if(sign==1)
     {
@@ -443,7 +447,7 @@ int Chatting_Function(int sign,int argc,char *argv[])
             conn_fd=socket(AF_INET,SOCK_STREAM,0);
             if(Register(conn_fd,serv_addr))
             {
-                return 1;
+                return 0;
             }
         }
     }
@@ -467,18 +471,37 @@ int Chatting_Function(int sign,int argc,char *argv[])
                 {
                     printf("Entered An Incorrect Password Three Times,To Quit !\n");
                     sleep(3);
-                    return 0;
+                    return -1;
                 }
             }
         }
     }
-
-    pthread_create(&tid1,NULL,threadsend,&conn_fd);
-    pthread_create(&tid2,NULL,threadrecv,&conn_fd);
-    pthread_join(tid1,(void *)&status);
-    pthread_join(tid2,(void *)&status);
-    close(conn_fd);
-    return 0;
+    if(Chatting_Service())
+    {
+        pthread_create(&tid1,NULL,threadsend,&conn_fd);
+        pthread_create(&tid2,NULL,threadrecv,&conn_fd);
+        pthread_join(tid2,(void *)&status);
+            //pthread_exit(0);
+    }
+    else
+    {
+        return 0;
+    }
+}
+int  Chatting_Function(int conn_fd)
+{
+    int status;
+    pthread_t tid1,tid2;
+    //if(vfork()==0)
+    //{
+        pthread_create(&tid1,NULL,threadsend,&conn_fd);
+        pthread_create(&tid2,NULL,threadrecv,&conn_fd);
+        pthread_join(tid2,(void *)&status);
+        pthread_exit(0);
+        //close(conn_fd);
+        //exit(0);
+    //}
+    //return 0;
 }
 
 void *threadsend(void * vargp)
@@ -503,6 +526,7 @@ void *threadsend(void * vargp)
         }
         printf("      send  Success! ");
         print_time(now);
+        printf("\n");
         if(!strncmp(temp,"@",1))
         {
             int i,j=-1,k=-1;
@@ -547,9 +571,20 @@ void *threadsend(void * vargp)
                 if(temp[i]=='\0')
                     break;
             }
+            buf.flag=0;
             strcpy(buf.Sendname,UserName);
             strcpy(buf.Recvname,"system");
-            buf.Sendtime=now; 
+            buf.Sendtime=now;
+            if(!strncmp(buf.Message,"quit",4))
+            {
+                exit_sign=1;
+                if(send(connfd,&buf,sizeof(message_node_t),0)<0)
+                {
+                    perror("send");
+                }
+                close(connfd);
+                pthread_exit(0); 
+            }
             if(send(connfd,&buf,sizeof(message_node_t),0)<0)
             {
                 perror("send");
@@ -584,6 +619,10 @@ void *threadrecv(void *vargp)
         idata = recv(connfd,&buf,sizeof(message_node_t),0);
         if(idata > 0)
         {
+            if(exit_sign==1 && !strncmp(buf.Message,"quit",4))
+            {
+                pthread_exit(0);
+            }
             printf("\n");
             print_time(buf.Sendtime);
             if(buf.flag==4)
