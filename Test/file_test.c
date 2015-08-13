@@ -11,7 +11,8 @@
 #include<stdlib.h>
 #include<string.h>
 
-int exists(char *path)
+
+int Exists(char *path)
 {
     FILE *fp;
     //printf("%s\n",path);
@@ -26,17 +27,18 @@ int exists(char *path)
         return 1;
     }
 }
-void system_init()
+
+int System_Init()
 {
     int i;
-    char path[][20]={{"./sys/"},{"./user/"},{"./data/"},{"./user/group"}};
-    char command[30];
+    char path[][20]={"./sys/","./user/","./data/","./user/group","./user/offline"};
+    char command[50];
     
-    char mkfile[][30]={"touch ./sys/error.log","touch ./sys/register.log","touch ./user/group/Chat.dat","touch ./data/User_info.dat"};
+    char mkfile[][40]={"touch ./sys/Error.log","touch ./sys/Register.log","touch ./user/group/Chat.dat","touch ./data/UserInfo.dat","touch ./user/offline/OffLine.dat"};
     
-    for(i=0;i<4;i++)
+    for(i=0;i<5;i++)
     {
-        if(!exists(path[i]))
+        if(!Exists(path[i]))
         {
             memset(command,0,sizeof(command));
             strcpy(command,"mkdir ");
@@ -44,37 +46,37 @@ void system_init()
             system(command);
         }
     }
-    for(i=0;i<4;i++)
+    for(i=0;i<5;i++)
     {
-        if(!exists(mkfile[i]))
+        if(!Exists(mkfile[i]))
         {
             system(mkfile[i]);
         }
     }
 }
+int User_Init(char *user_name)
+{
+    char path[40]="./user/";
+    char file[9]="Chat.dat";
+    char command1[50]="mkdir ";
+    char command2[50]="touch ";
+    strcat(path,user_name);
+    if(!Exists(path))
+    {
+        strcat(command1,path);
+        system(command1);
+    }
+    strcat(path,"/");
+    strcat(path,file); 
+    if(!Exists(path))
+    {
+        strcat(command2,path);
+        system(command2);
+    }
+}
 int main()
 {
-    //FILE *fp;
-    //system("mkdir ./Test");
-    
-    //system("mkdir ./sys/");
-    //system("mkdir ./sys/group/");
-    system_init();
-    /*
-    strcpy(path,"/home/zhoupan/heihei/hehe");
-    strcat(path2,path);
-    if(exists(path))
-    {
-        printf("存在\n");
-    }
-    else
-    {
-        printf("not exist\n");
-        system(path2);
-    }*/
-    //fprintf(fp,"%s\n","我很着急");
-    //system("mkdir ~/Project/ChatRoom/Test");
-    //system("touch ./Test/hehe");
-    
+    System_Init();
+    User_Init("zhoufre");
 }
 
