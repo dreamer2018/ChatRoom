@@ -22,11 +22,37 @@ typedef struct System_Error_log  //系统错误记录函数
 typedef struct System_Register_Log //系统登录注册记录函数
 {
     time_t time;            //登录/注册的时间
-    int type;               //事件类型：0：注册 1：登录
+    int type;               //事件类型：0：注册 1：登录 2:离线
     char name[21];          //注册/登录的用户名
     char address[16];       //登录客户端ip
     char message[256];      //登录/注册信息：成功，失败，失败原因
 }register_node_t ;
+
+void Register_Persist_Log(register_node_t *buf)
+{
+    FILE *fp;
+    struct tm *p;
+    p=localtime(&buf->time);
+    fp=fopen(Register_DATA_FILE,"a");
+    if(fp!=NULL)
+    {
+        fprintf(fp,"%d-%d-%d %d:%d:%d %d %s %s %s\n",p->tm_year+1900,p->tm_mon+1,p->tm_mday,p->tm_hour,p->tm_min,p->tm_sec,buf->type,buf->name,buf->address,buf->message);
+    fclose(fp);
+    }
+}
+void Error_Persist_Log(error_node_t *buf)
+{
+    FILE *fp;
+    struct tm *p;
+    p=localtime(&buf->time);
+    fp=fopen(ERROR_DATA_FILE,"a");
+    if(fp!=NULL)
+    {
+        fprintf(fp,"%d-%d-%d %d:%d:%d %s %s\n",p->tm_year+1900,p->tm_mon+1,p->tm_mday,p->tm_hour,p->tm_min,p->tm_sec,buf->name,buf->message);
+        fclose(fp);
+    }
+}
+
 
 void Error_Log(char *name,char *message)
 {
@@ -36,43 +62,19 @@ void Error_Log(char *name,char *message)
     buf.time=now;
     strcpy(buf.name,name);
     strcpy(buf.message,message);
+    Error_Persist_Log(&buf);
 }
 
 void Register_Log(int type,char *name,char *addr,char *message)
 {
-    error_node_t buf;
+    register_node_t buf;
     time_t now;
     time(&now);
     buf.time=now;
     buf.type=type;
     strcpy(buf.name,name);
-    strcpy(buf.addr,addr);
+    strcpy(buf.address,addr);
     strcpy(buf.message,message);
+    Register_Persist_Log(&buf);
 }
-
-void Register_Persist_Log(error_node_t *buf)
-{
-    FILE *fp;
-    struct tm *p;
-    p=localtime(&buf->time);
-    fp=fopen(ERROR_DATA_FILE,"a");
-    if(fp!=NULL)
-    {
-        fprintf("%d-%d-%d %d:%d:%d %d %s %s %s\n",p->tm_year+1900,p->tm_mon+1,p->tm_day,p->tm_hour,p->tm_min,p->tm_sec,buf->type,buf->name,buf->address,buf->message);
-    fclose(fp);
-    }
-}
-void Error_Persist_Log(register_node_t *buf)
-{
-    FILE *fp;
-    struct tm *p;
-    p=localtime(&buf->time);
-    fp=fopen(ERROR_DATA_FILE,"a");
-    if(fp!=NULL)
-    {
-        fprintf("%d-%d-%d %d:%d:%d %s %s %s\n",p->tm_year+1900,p->tm_mon+1,p->tm_day,p->tm_hour,p->tm_min,p->tm_sec,buf->name,buf->message);
-        fclose(fp);
-    }
-}
-
 #endif
