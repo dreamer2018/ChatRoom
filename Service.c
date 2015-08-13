@@ -103,6 +103,21 @@ int Info_Match(char *name,char *passwd)  //信息匹配函数，用于进行密�
     return rtn;
 }
 
+int OnLine_Find_ByName(char *name)
+{
+    int i,rtn=0;
+    online_node_t *p;
+    p=head;
+    for(i=0;i<fd_count;i++)
+    {
+        p=p->next;
+        if(!strcmp(p->name,name))
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
 int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息服务函数
 {
     int rtn=0;
@@ -171,20 +186,39 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
         case 2:
             if(Info_Match(recv_buf.Sendname,recv_buf.Recvname))
             {
-                send_buf.flag=0;
-                strcpy(send_buf.Sendname,"system");
-                strcpy(send_buf.Recvname,recv_buf.Sendname);
-                time(&now);
-                send_buf.Sendtime=now;
-                strcpy(send_buf.Message,"Success");
-                Register_Log(1,recv_buf.Sendname,address,"login success");             
-                if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
+                if(OnLine_Find_ByName(recv_buf.Sendname))
                 {
-                    Error_Log("send: ",strerror(errno));
-                    exit(0);
+                    send_buf.flag=0;
+                    strcpy(send_buf.Sendname,"system");
+                    strcpy(send_buf.Recvname,recv_buf.Sendname);
+                    time(&now);
+                    send_buf.Sendtime=now;
+                    strcpy(send_buf.Message,"This User Has Logged In ,You Can Not Log In Again ");
+                    Register_Log(1,recv_buf.Sendname,address,"login fail,this name has logged in");             
+                    if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
+                    {
+                        Error_Log("send: ",strerror(errno));
+                        exit(0);
+                    }
+                    rtn=0;
                 }
-                strcpy(newName,recv_buf.Sendname);
-                rtn=1;
+                else
+                {  
+                    send_buf.flag=0;
+                    strcpy(send_buf.Sendname,"system");
+                    strcpy(send_buf.Recvname,recv_buf.Sendname);
+                    time(&now);
+                    send_buf.Sendtime=now;
+                    strcpy(send_buf.Message,"Success");
+                    Register_Log(1,recv_buf.Sendname,address,"login success");             
+                    if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
+                    {
+                        Error_Log("send: ",strerror(errno));
+                        exit(0);
+                    }
+                    strcpy(newName,recv_buf.Sendname);
+                    rtn=1;
+                }
             }
             else
             {
