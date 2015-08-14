@@ -36,7 +36,7 @@ void Register_Persist_Log(register_node_t *buf)
     fp=fopen(Register_DATA_FILE,"a");
     if(fp!=NULL)
     {
-        fprintf(fp,"%d-%d-%d %d:%d:%d %d %s %s %s\n",p->tm_year+1900,p->tm_mon+1,p->tm_mday,p->tm_hour,p->tm_min,p->tm_sec,buf->type,buf->name,buf->address,buf->message);
+        fprintf(fp,"%.2d-%.2d-%.2d %.2d:%.2d:%.2d %d %s %s %s\n",p->tm_year+1900,p->tm_mon+1,p->tm_mday,p->tm_hour,p->tm_min,p->tm_sec,buf->type,buf->name,buf->address,buf->message);
     fclose(fp);
     }
 }
@@ -48,7 +48,7 @@ void Error_Persist_Log(error_node_t *buf)
     fp=fopen(ERROR_DATA_FILE,"a");
     if(fp!=NULL)
     {
-        fprintf(fp,"%d-%d-%d %d:%d:%d %s %s\n",p->tm_year+1900,p->tm_mon+1,p->tm_mday,p->tm_hour,p->tm_min,p->tm_sec,buf->name,buf->message);
+        fprintf(fp,"%d-%.2d-%.2d %.2d:%.2d:%.2d %s %s\n",p->tm_year+1900,p->tm_mon+1,p->tm_mday,p->tm_hour,p->tm_min,p->tm_sec,buf->name,buf->message);
         fclose(fp);
     }
 }
