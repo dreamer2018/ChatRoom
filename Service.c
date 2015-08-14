@@ -26,16 +26,6 @@
  * List_Init(head,list_node_t)  单向链表初始化宏定义
  * List_AddHead(head,newNode)   单项链表头插发宏定义
 */
-
-#include"Persist.h"
-
-/*
- *  Persits.h 封装了部分文件操作函数，具体如下：
- *  int Register_Persist(message_node_t *buf)  //用户信息写入函数，返回1 表示操作成功，0 表示操作失败
- *  int UserInfo_Perst_Select(char *name,message_node_t *buf)  //通过用户名，找到用户相关信息返回1表示找到，0表示未找到
- *  int Play_Perst_Update(const message_node_t *data)  ////将参数所指向的新信息写入到文件中，返回0表示操作失败，返回1表示操作成功
- */
-
 #include"my_error.h"
 
 /*
@@ -44,6 +34,16 @@
  *  void Register_Log(int type,char *name,char *addr,char *message)  //type为记录的类型,0为注册，1为登录
  *  void Register_Persist_Log(error_node_t *buf)     //登录/注册信息文件写入函数
  *  void Error_Persist_Log(register_node_t *buf)     //错误信息写入函数
+ */
+
+
+#include"Persist.h"
+
+/*
+ *  Persits.h 封装了部分文件操作函数，具体如下：
+ *  int Register_Persist(message_node_t *buf)  //用户信息写入函数，返回1 表示操作成功，0 表示操作失败
+ *  int UserInfo_Perst_Select(char *name,message_node_t *buf)  //通过用户名，找到用户相关信息返回1表示找到，0表示未找到
+ *  int Play_Perst_Update(const message_node_t *data)  ////将参数所指向的新信息写入到文件中，返回0表示操作失败，返回1表示操作成功
  */
 
 
@@ -150,6 +150,7 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
             {
                 if(Register_Persist(&recv_buf))
                 {
+                    
                     send_buf.flag=0;
                     strcpy(send_buf.Sendname,"system");
                     strcpy(send_buf.Recvname,recv_buf.Sendname);
@@ -158,6 +159,7 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
                     strcpy(send_buf.Message,"Success");
                     strcpy(newName,recv_buf.Sendname);
                     Register_Log(0,recv_buf.Sendname,address,"register success");
+                    User_Init(newName);
                     if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
                     {
                         Error_Log("send: ",strerror(errno));
@@ -273,6 +275,7 @@ void Send_Message(message_node_t *buf)
             System_command(buf);
             break;
         case 3:
+            Group_Message_Save(0,"./user/group/Chat.dat",buf);
             for(j=0;j<fd_count;j++)
             {          
                 t=t->next;
@@ -286,6 +289,8 @@ void Send_Message(message_node_t *buf)
             }
             break;
         case 4:
+            //Message_Save(0,buf->Sendname,"./user/",buf);
+            //Message_Save(0,buf->Recvname,"./user/",buf);
             for(j=0;j<fd_count;j++)
             {
                 t=t->next;
