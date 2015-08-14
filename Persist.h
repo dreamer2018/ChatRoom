@@ -10,6 +10,7 @@
 #define _PERSIST_H
 
 static const char USERINFO_DATA_FILE[] = "./data/UserInfo.dat";
+static const char GROUPCHAT_DATA_FILE[] ="./user/group/Chat.dat";
 
 int Exists(char *path)
 {
@@ -74,6 +75,56 @@ int User_Init(char *user_name)
     }
 }
 
+int Client_Init(char *user_name)
+{ 
+    char path_1[40]="./";
+    char path_2[40]="./";
+    char file_1[10]="/Group/";
+    char file_2[10]="/Private/";
+    char file[9]="Chat.dat";
+    char command1[50]="mkdir ";
+    char command2[50]="mkdir ";
+    char command3[50]="mkdir ";
+    char command4[50]="touch ";
+    char command5[50]="touch ";
+    strcat(path_1,user_name);
+    strcat(path_2,user_name);
+    if(!Exists(path_1))  //在当前目录下创建用户名为名的文件夹 ./user_name
+    {
+        strcat(command1,path_1);
+        system(command1);
+    }
+
+    strcat(path_1,file_1);      //  ./user_name/Group/
+    strcat(path_2,file_2);      // ./user_name/Private/
+    
+    if(!Exists(path_1))         //创建./user_name/Group/
+    {     
+        strcat(command2,path_1);
+        system(command2); 
+    }
+
+    if(!Exists(path_2))         //创建./user_name/Private/
+    {    
+        strcat(command3,path_2);
+        system(command3);
+    }
+    
+    strcat(path_1,file);
+    strcat(path_2,file);
+
+    if(!Exists(path_1))
+    {
+        strcat(command4,path_1);
+        system(command4);
+    }
+    
+    if(!Exists(path_2))
+    {
+        strcat(command5,path_2);
+        system(command5);
+    }
+}
 int Register_Persist(message_node_t *data)  //用户信息写入函数,返回1 表示操作成功，0 表示操作失败
 {
     int rtn=0;
@@ -92,9 +143,92 @@ int Register_Persist(message_node_t *data)  //用户信息写入函数,返回1 �
 	return rtn;
 }
 
+int Service_Group_Message_Save(char *file,message_node_t *data)  //用户信息写入函数,返回1 表示操作成功，0 表示操作失败
+{
+    int rtn=0;
+	FILE *fp;
+	fp=fopen(file,"ab");
+	if(fp==NULL)
+	{
+		printf("File Open Fail !\n");
+    }
+	else
+	{
+		fwrite(data,sizeof(message_node_t),1,fp);
+		rtn=1;
+	}
+	fclose(fp);
+	return rtn;
+}
+
+int Service_Message_Save(char *name,char *file,message_node_t *data)
+{
+    char path[50];
+    int rtn=0;
+	FILE *fp;
+    strcpy(path,file);
+    strcat(path,name);
+    strcat(path,"/Chat.dat");
+	fp=fopen(path,"ab");
+	if(fp==NULL)
+	{
+        Error_Log(path,":This File Open Fail!");
+    }
+	else
+	{
+		fwrite(data,sizeof(message_node_t),1,fp);
+		rtn=1;
+	}
+	fclose(fp);
+	return rtn;
+}
+
+int Client_Message_Save(char *name,message_node_t *data)
+{
+    char path[50]="./";
+    int rtn=0;
+	FILE *fp;
+    strcat(path,name);
+    strcat(path,"/Private/Chat.dat");
+	fp=fopen(path,"ab");
+	if(fp==NULL)
+	{
+	    printf("File Open Fail !\n");
+    }
+	else
+	{
+		fwrite(data,sizeof(message_node_t),1,fp);
+		rtn=1;
+	}
+	fclose(fp);
+	return rtn;
+}
+
+int Client_Group_Message_Save(char *name,message_node_t *data)  //用户信息写入函数,返回1 表示操作成功，0 表示操作失败
+{
+    int rtn=0;
+    char file[50]="./";
+	FILE *fp;
+    strcat(file,name);
+    strcat(file,"/Group/Chat.dat");
+	fp=fopen(file,"ab");
+	if(fp==NULL)
+	{
+		printf("File Open Fail !\n");
+    }
+	else
+	{
+		fwrite(data,sizeof(message_node_t),1,fp);
+		rtn=1;
+	}
+	fclose(fp);
+	return rtn;
+}
+
+
 int UserInfo_SelectByName(char *name) //通过用户名查找该用户是否存在,1表示存在。0表示不存在
 {
-	int found=0;
+    int found=0;
     message_node_t buf;
     FILE *fp;
     fp=fopen(USERINFO_DATA_FILE,"rb");
@@ -169,12 +303,15 @@ int Play_Perst_Update(const message_node_t *data)
 	return found;
 }
 
-/*
-int Play_Perst_SelectAll(play_list_t list) 
+
+int Private_Message_SelectAll(char *name,message_node_t *list) 
 {
 	int found=0;
 	FILE *fp;
-	fp=fopen(PLAY_DATA_FILE,"rb");
+    char file[50]="./";
+    strcat(file,name);
+    strcat(file,"/Private/Chat.dat");
+	fp=fopen(file,"rb");
 	if(fp==NULL)
 	{
 		printf("文件打开失败！\n");
@@ -182,43 +319,60 @@ int Play_Perst_SelectAll(play_list_t list)
 	}
 	else
 	{
-		List_Free(list, play_node_t);
-		play_t buf;
-		play_node_t *p;
-		p=(play_node_t *)malloc(sizeof(play_node_t));
-		while(fread(&buf,sizeof(play_t),1,fp)==1)
+		List_Init(list, message_node_t);
+		message_node_t buf;
+		message_node_t *p;
+		p=(message_node_t *)malloc(sizeof(message_node_t));
+		while(fread(&buf,sizeof(message_node_t),1,fp)==1)
 		{
-			p->data.id=buf.id;
-			strcpy(p->data.name,buf.name);
-			p->data.type=buf.type;
-			strcpy(p->data.area,buf.area);
-			p->data.rating=buf.rating;
-			p->data.duration=buf.duration;
-			p->data.start_date=buf.start_date;
-			p->data.end_date=buf.end_date;
-			p->data.price=buf.price;
-			List_AddTail(list, p);
-			p=(play_node_t *)malloc(sizeof(play_node_t));
+            p->flag=buf.flag;
+			p->Sendtime=buf.Sendtime;
+            strcpy(p->Sendname,buf.Sendname);
+            strcpy(p->Recvname,buf.Recvname);
+            strcpy(p->Message,buf.Message);
+            List_AddHead(list, p);
+			p=(message_node_t *)malloc(sizeof(message_node_t));
 			found++;
 		}
 	}
 	fclose(fp); 
 	return found;
 }
-*/
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+int Group_Message_SelectAll(char *name,message_node_t *list) 
+{
+	int found=0;
+	FILE *fp;
+    char file[50]="./";
+    strcat(file,name);
+    strcat(file,"/Group/Chat.dat");
+	fp=fopen(file,"rb");
+	if(fp==NULL)
+	{
+		printf("文件打开失败！\n");
+		return 0; 
+	}
+	else
+	{
+		List_Init(list, message_node_t);
+		message_node_t buf;
+		message_node_t *p;
+		p=(message_node_t *)malloc(sizeof(message_node_t));
+		while(fread(&buf,sizeof(message_node_t),1,fp)==1)
+		{
+            p->flag=buf.flag;
+			p->Sendtime=buf.Sendtime;
+            strcpy(p->Sendname,buf.Sendname);
+            strcpy(p->Recvname,buf.Recvname);
+            strcpy(p->Message,buf.Message);
+            List_AddHead(list, p);
+			p=(message_node_t *)malloc(sizeof(message_node_t));
+			found++;
+		}
+	}
+	fclose(fp); 
+	return found;
+}
 
 #endif
