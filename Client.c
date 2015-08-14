@@ -19,7 +19,8 @@
 #include"List.h"
 #include<time.h>
 #include<pthread.h>
-//#include"Persist.h"
+#include"my_error.h"
+#include"Persist.h"
 
 
 #define STRMAX 100
@@ -458,6 +459,7 @@ int Login_Service(int sign,int argc,char *argv[])
             conn_fd=socket(AF_INET,SOCK_STREAM,0);
             if(Sign_In(conn_fd,serv_addr,&buf))
             {
+                Client_Init(UserName);
                 break;
             }
             else
@@ -465,7 +467,6 @@ int Login_Service(int sign,int argc,char *argv[])
                 printf("\033[35m%s\033[0m\n",buf.Message);
                 if(i>0)
                 {
-                    //printf("Nickname Or Password Error\n");
                     printf("You Have %d Chance,Please Try Again\n\n",i);   
                 }
                 else
@@ -540,10 +541,12 @@ void *threadsend(void * vargp)
             buf.flag=4;
             strcpy(buf.Sendname,UserName);
             buf.Sendtime=now;
+            
             if(send(connfd,&buf,sizeof(message_node_t),0)<0)
             {
                 perror("send");
             }
+            Client_Message_Save(UserName,&buf);
         }
         else if(!strncmp(temp,"//",2))
         {
@@ -586,6 +589,7 @@ void *threadsend(void * vargp)
             {
                 perror("send");
             }
+            Client_Group_Message_Save(UserName,&buf);
         }
     }
     return NULL;
@@ -612,13 +616,14 @@ void *threadrecv(void *vargp)
             if(buf.flag==4)
             {
                 printf("\033[45m%-6s\033[0m :\033[35m %s\033[0m\n",buf.Sendname,buf.Message);
+                Client_Message_Save(UserName,&buf);
             }
             else
             {
                 printf("\033[34m%-6s\033[0m : %s\n",buf.Sendname,buf.Message);
+                Client_Group_Message_Save(UserName,&buf);
             }
         }
-        //printf("Test\n");
     }
     return NULL;
 }
