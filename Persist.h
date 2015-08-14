@@ -319,7 +319,7 @@ int Private_Message_SelectAll(char *name,message_node_t *list)
 	}
 	else
 	{
-		List_Init(list, message_node_t);
+		List_Free(list,message_node_t);
 		message_node_t buf;
 		message_node_t *p;
 		p=(message_node_t *)malloc(sizeof(message_node_t));
@@ -342,7 +342,8 @@ int Private_Message_SelectAll(char *name,message_node_t *list)
 
 int Group_Message_SelectAll(char *name,message_node_t *list) 
 {
-	int found=0;
+	printf("test\n");
+    int found=0;
 	FILE *fp;
     char file[50]="./";
     strcat(file,name);
@@ -355,7 +356,8 @@ int Group_Message_SelectAll(char *name,message_node_t *list)
 	}
 	else
 	{
-		List_Init(list, message_node_t);
+        printf("tets___\n");
+		List_Free(list,message_node_t);
 		message_node_t buf;
 		message_node_t *p;
 		p=(message_node_t *)malloc(sizeof(message_node_t));
