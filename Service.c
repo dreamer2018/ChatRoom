@@ -289,8 +289,8 @@ void Send_Message(message_node_t *buf)
             }
             break;
         case 4:
-            //Message_Save(0,buf->Sendname,"./user/",buf);
-            //Message_Save(0,buf->Recvname,"./user/",buf);
+            Message_Save(0,buf->Sendname,"./user/",buf);
+            Message_Save(0,buf->Recvname,"./user/",buf);
             for(j=0;j<fd_count;j++)
             {
                 t=t->next;
