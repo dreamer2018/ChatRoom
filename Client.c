@@ -25,7 +25,7 @@
 #define STRMAX 100
 
 
-#define BUFMAX 512
+#define BUFMAX 1024
 
 //函数声明部分
 char UserName[21];
@@ -112,8 +112,6 @@ int Chatting_Service()
 	    	case '1':
 		        system("clear");
                 return 1;
-                //Chatting_Function(conn_fd);
-		        //break;
             case '2':
 		            ;
 		        break;
@@ -210,19 +208,17 @@ void Get_info(char *Nickname,char *Password)
         printf("Please Input Your Nickname:");
         scanf("%s",buf);
         getchar();
-        if(strlen(buf)>20)
-        {
-            printf("Nickname Length 20,Please Input Again !\n");
-         
-        }
-        else
+        if(strlen(buf)<21)
         {
             strncpy(Nickname,buf,20);
             Nickname[20]='\0';
             break;
         }
+        else
+        {
+            printf("\033[35mYour Nickname length more than 20,Please Input Again !\033[0m\n");
+        }
     }
-    
     for(i=0;i<10;i++)
     {
         if(!getpasswd(Password))
@@ -238,7 +234,6 @@ void Get_info(char *Nickname,char *Password)
             break;
         }
     }
-    printf("Nickname:%s Password:%s\n",Nickname,Password);
 }
 
 int Register(int sock_fd,struct sockaddr_in serv_addr)
@@ -258,6 +253,7 @@ int Register(int sock_fd,struct sockaddr_in serv_addr)
     strcpy(send_buf.Message,"Register");
     time(&now);
     send_buf.Sendtime=now;
+    
     if(connect(sock_fd,(struct sockaddr *)&serv_addr,sizeof(struct sockaddr))<0)
     {
         perror("connect");
@@ -282,6 +278,7 @@ int Register(int sock_fd,struct sockaddr_in serv_addr)
     }
     else
     {
+       // close(sock_fd);
         printf("%s\n",recv_buf.Message);
         close(sock_fd);
     }
@@ -312,6 +309,7 @@ int Sign_In(int sock_fd,struct sockaddr_in serv_addr,message_node_t *recv_buf)
         exit(1);
     }
 
+ 
     if(send(sock_fd,&send_buf,sizeof(message_node_t),0)<0)
     {
         perror("send");
@@ -327,7 +325,6 @@ int Sign_In(int sock_fd,struct sockaddr_in serv_addr,message_node_t *recv_buf)
     if(!strncmp(recv_buf->Message,"Succ",4))
     {
         strcpy(UserName,recv_buf->Recvname);
-        printf("Signin Success !\n");
         rtn=1;
     }
     else
@@ -465,9 +462,10 @@ int Login_Service(int sign,int argc,char *argv[])
             }
             else
             {
-                printf("\033[35m%s\n\033[0m",buf.Message);
+                printf("\033[35m%s\033[0m\n",buf.Message);
                 if(i>0)
                 {
+                    //printf("Nickname Or Password Error\n");
                     printf("You Have %d Chance,Please Try Again\n\n",i);   
                 }
                 else
@@ -503,10 +501,8 @@ void *threadsend(void * vargp)
     {
         memset(temp,0,BUFSIZE);
         memset(&buf,0,sizeof(message_node_t));
-        //fgets(temp,BUFMAX,stdin);
         gets(temp);
         time(&now);
-        //printf("%s\n",temp);
         if(strlen(temp)>512)
         {
             printf("Send Fail,Message Too Long\n");
@@ -591,7 +587,6 @@ void *threadsend(void * vargp)
             }
         }
     }
-    printf("client send\n");
     return NULL;
 }
 
