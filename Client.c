@@ -24,7 +24,7 @@
 
 
 #define STRMAX 100
-
+#define PLAY_PAGE_SIZE 10
 
 #define BUFMAX 1024
 
@@ -38,6 +38,9 @@ int Chatting_Function(int conn_fd);
 int Login_Service(int sign,int argc,char *argv[]);
 void *threadrecv(void *vargp);
 void *threadsend(void *vargp);
+void print_time(time_t st_time); //日期解析函数
+void Get_Group_Chatting_Record();
+void Get_Private_Chatting_Record();                
 
 
 int main(int argc,char *argv[]) //主函数
@@ -114,14 +117,141 @@ int Chatting_Service()
 		        system("clear");
                 return 1;
             case '2':
-		            ;
+                system("clear");
+                Get_Group_Chatting_Record();
 		        break;
 		    case '3':
+                system("clear");
+                Get_Private_Chatting_Record();                
                 break; 
             case '4':
 		        return 0;       
 		}
 	}while(flag);
+}
+
+void Get_Private_Chatting_Record()
+{
+	int i;
+    char choice;
+	message_node_t *head;
+	message_node_t *pos;
+	Pagination_t paging;
+	List_Init(head,message_node_t);
+	paging.offset=0;
+	paging.pageSize = PLAY_PAGE_SIZE;
+	paging.totalRecords = Private_Message_SelectAll(UserName,head);
+	Paging_Locate_FirstPage(head, paging);
+	do {
+		system("clear");
+		printf("\n\t\t\033[36m===================================================================\n");
+		printf("\t\t********************* Group Chat Records **************************\033[0m\n");
+		Paging_ViewPage_ForEach(head, paging, message_node_t , pos, i)
+        {
+            if(strcmp(pos->Sendname,UserName))
+            {
+                printf("\t\t\033[34m");
+                print_time(pos->Sendtime); //日期解析函数
+                printf("\033[0m");
+                printf("\t\t\033[35m%s\033[0m:%s\n",pos->Sendname,pos->Message);
+            }
+            else
+            {
+                printf("\t\t\033[34m");
+                printf("%48s"," ");
+                print_time(pos->Sendtime); //日期解析函数
+                printf("\033[0m");
+                printf("\t\t%58s\033[35m:%s\033[0m\n",pos->Message,pos->Sendname);     
+            }
+        }
+		printf("\t\t\033[36m==================================================================\n");
+		printf("\t\t-------- Total Records:%2d  -------------------- 页数: %2d/%2d ------\n",
+paging.totalRecords, Pageing_CurPage(paging),Pageing_TotalPages(paging));
+		printf("\t\t******************************************************************\n");
+		printf("\t\t**        [P]   上一页      [N]  下一页       [R]  返回       　**\n");
+        printf("\t\t******************************************************************\033[0m\n");
+		choice=getch();
+		switch (choice) 
+		{
+    		case 'p':	
+	    	case 'P':
+		    	if (!Pageing_IsFirstPage(paging))
+			    {
+				    Paging_Locate_OffsetPage(head, paging, -1, message_node_t);
+    			}
+	    		break;
+		    case 'n':
+    		case 'N':
+	    		if (!Pageing_IsLastPage(paging)) 
+		    	{
+			    	Paging_Locate_OffsetPage(head, paging, 1, message_node_t);
+    			}
+	    		break;
+	    }
+    }while(choice !='r' && choice != 'R');
+	List_Destroy(head,message_node_t);
+}
+
+void Get_Group_Chatting_Record()
+{
+	int i;
+    char choice;
+	message_node_t *head;
+	message_node_t *pos;
+	Pagination_t paging;
+	List_Init(head,message_node_t);
+	paging.offset=0;
+	paging.pageSize = PLAY_PAGE_SIZE;
+	paging.totalRecords = Group_Message_SelectAll(UserName,head);
+	Paging_Locate_FirstPage(head, paging);
+	do {
+		system("clear");
+		printf("\n\t\t\033[36m===================================================================\n");
+		printf("\t\t********************* Group Chat Records **************************\033[0m\n");
+		Paging_ViewPage_ForEach(head, paging, message_node_t , pos, i)
+        {
+            if(strcmp(pos->Sendname,UserName))
+            {
+                printf("\t\t\033[34m");
+                print_time(pos->Sendtime); //日期解析函数
+                printf("\033[0m");
+                printf("\t\t\033[35m%s\033[0m:%s\n",pos->Sendname,pos->Message);
+            }
+            else
+            {
+                printf("\t\t\033[34m");
+                printf("%48s"," ");
+                print_time(pos->Sendtime); //日期解析函数
+                printf("\033[0m");
+                printf("\t\t%58s\033[35m:%s\033[0m\n",pos->Message,pos->Sendname);     
+            }
+		}
+		printf("\t\t\033[36m==================================================================\n");
+		printf("\t\t-------- Total Records:%2d  -------------------- 页数: %2d/%2d ------\n",
+paging.totalRecords, Pageing_CurPage(paging),Pageing_TotalPages(paging));
+		printf("\t\t******************************************************************\n");
+		printf("\t\t**        [P]   上一页      [N]  下一页       [R]  返回       　**\n");
+        printf("\t\t******************************************************************\033[0m\n");
+		choice=getch();
+		switch (choice) 
+		{
+    		case 'p':	
+	    	case 'P':
+		    	if (!Pageing_IsFirstPage(paging))
+			    {
+				    Paging_Locate_OffsetPage(head, paging, -1, message_node_t);
+    			}
+	    		break;
+		    case 'n':
+    		case 'N':
+	    		if (!Pageing_IsLastPage(paging)) 
+		    	{
+			    	Paging_Locate_OffsetPage(head, paging, 1, message_node_t);
+    			}
+	    		break;
+	    }
+    }while(choice !='r' && choice != 'R');
+	List_Destroy(head,message_node_t);
 }
 
 void passwd(char *password)
@@ -339,47 +469,7 @@ void print_time(time_t st_time) //日期解析函数
 {
     struct tm *p;
     p=localtime(&st_time);
-    printf("%d-",p->tm_year+1900);
-    if(p->tm_mon<10)
-    {
-        printf("0%d-",p->tm_mon+1);
-    }
-    else
-    {
-        printf("%2d-",p->tm_mon+1);
-    }
-    if(p->tm_mday<10) //小于十的前面补零
-    {
-        printf("0%d",p->tm_mday); 
-    }
-    else
-    {
-        printf("%2d",p->tm_mday);        
-    }
-    if(p->tm_hour<10)
-    {
-        printf(" 0%d:",p->tm_hour);        
-    }
-    else
-    {
-       printf(" %2d:",p->tm_hour);        
-    }
-    if(p->tm_min<10)
-    {
-        printf("0%d",p->tm_min);        
-    }
-    else
-    {
-        printf("%2d",p->tm_min);           
-    }
-    if(p->tm_sec<10)
-    {
-        printf(":0%d\n",p->tm_sec);
-    }
-    else
-    {
-        printf(":%2d\n",p->tm_sec);
-    }
+    printf("%d-%.2d-%.2d %.2d:%.2d:%.2d\n",p->tm_year+1900,p->tm_mon+1,p->tm_mday,p->tm_hour,p->tm_min,p->tm_sec);
 }
 
 int Login_Service(int sign,int argc,char *argv[])
@@ -481,6 +571,7 @@ int Login_Service(int sign,int argc,char *argv[])
     }
     if(Chatting_Service())
     {
+        printf("********************Begin Chatting********************\n");
         pthread_create(&tid1,NULL,threadsend,&conn_fd);
         pthread_create(&tid2,NULL,threadrecv,&conn_fd);
         pthread_join(tid2,(void *)&status);
