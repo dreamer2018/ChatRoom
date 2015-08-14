@@ -216,7 +216,7 @@ void Get_info(char *Nickname,char *Password)
         }
         else
         {
-            printf("\033[35mYour Nickname length more than 20,Please Input Again !\033[0m\n");
+            printf("\033[35mYour Nickname length more than 20,Please Input Again !\033[0m\n\n");
         }
     }
     for(i=0;i<10;i++)
@@ -486,6 +486,7 @@ int Login_Service(int sign,int argc,char *argv[])
     }
     else
     {
+        close(conn_fd);
         return 0;
     }
 }
