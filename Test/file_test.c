@@ -74,10 +74,61 @@ int User_Init(char *user_name)
         system(command2);
     }
 }
+int Client_Init(char *user_name)
+{ 
+    char path_1[40]="./";
+    char path_2[40]="./";
+    char file_1[10]="/Group/";
+    char file_2[10]="/Private/";
+    char file[9]="Chat.dat";
+    char command1[50]="mkdir ";
+    char command2[50]="mkdir ";
+    char command3[50]="mkdir ";
+    char command4[50]="touch ";
+    char command5[50]="touch ";
+    strcat(path_1,user_name);
+    strcat(path_2,user_name);
+    if(!Exists(path_1))  //在当前目录下创建用户名为名的文件夹 ./user_name
+    {
+        strcat(command1,path_1);
+        system(command1);
+    }
+
+    strcat(path_1,file_1);      //  ./user_name/Group/
+    strcat(path_2,file_2);      // ./user_name/Private/
+    
+    if(!Exists(path_1))         //创建./user_name/Group/
+    {     
+        strcat(command2,path_1);
+        system(command2); 
+    }
+
+    if(!Exists(path_2))         //创建./user_name/Private/
+    {    
+        strcat(command3,path_2);
+        system(command3);
+    }
+    
+    strcat(path_1,file);
+    strcat(path_2,file);
+
+    if(!Exists(path_1))
+    {
+        strcat(command4,path_1);
+        system(command4);
+    }
+    
+    if(!Exists(path_2))
+    {
+        strcat(command5,path_2);
+        system(command5);
+    }
+}
 int main()
 {
     System_Init();
     User_Init("zhoufre");
+    Client_Init("adminfffffffffffffff");
     system("cat file_test.c");
 }
 
