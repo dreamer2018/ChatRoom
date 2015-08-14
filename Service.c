@@ -275,7 +275,7 @@ void Send_Message(message_node_t *buf)
             System_command(buf);
             break;
         case 3:
-            Group_Message_Save(0,"./user/group/Chat.dat",buf);
+            Service_Group_Message_Save("./user/group/Chat.dat",buf);
             for(j=0;j<fd_count;j++)
             {          
                 t=t->next;
@@ -289,8 +289,8 @@ void Send_Message(message_node_t *buf)
             }
             break;
         case 4:
-            Message_Save(0,buf->Sendname,"./user/",buf);
-            Message_Save(0,buf->Recvname,"./user/",buf);
+            Service_Message_Save(buf->Sendname,"./user/",buf);
+            Service_Message_Save(buf->Recvname,"./user/",buf);
             for(j=0;j<fd_count;j++)
             {
                 t=t->next;
