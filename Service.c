@@ -131,7 +131,7 @@ int Offline_Message_Srv(int conn_fd,message_node_t *buf)  //离线消息发送�
     {
         if(UserInfo_SelectByName(buf->Recvname))  //不在线的话，要查询用户是否注册
         {
-            send_buf.flag=0;
+            send_buf.flag=5;
             time(&now);
             send_buf.Sendtime=now;
             strcpy(send_buf.Sendname,"system");
@@ -144,12 +144,14 @@ int Offline_Message_Srv(int conn_fd,message_node_t *buf)  //离线消息发送�
             }
             if(!Offline_Message_Save(buf))
             {
-               Error_Log("Offline_Message_Save: ","Offline Message Write Fail"); 
+                Error_Log("Offline_Message_Save: ","Offline Message Write Fail");
+                return 0;
             }
+            return 1;
         }
         else //没有注册的话，直接返回给客户端此用户未注册
         { 
-            send_buf.flag=0;
+            send_buf.flag=5;
             time(&now);
             send_buf.Sendtime=now;
             strcpy(send_buf.Sendname,"system");
@@ -160,6 +162,7 @@ int Offline_Message_Srv(int conn_fd,message_node_t *buf)  //离线消息发送�
                 Error_Log("send: ",strerror(errno));
                 exit(0);
             }
+            return 0;
         }
     }
 }
@@ -310,7 +313,7 @@ void System_command(message_node_t *buf)
         } 
     }
 }
-void Send_Message(message_node_t *buf)
+void Send_Message(int conn_fd,message_node_t *buf)
 {
     int j;
     online_node_t *t;
@@ -337,6 +340,7 @@ void Send_Message(message_node_t *buf)
         case 4:
             Service_Message_Save(buf->Sendname,"./user/",buf);
             Service_Message_Save(buf->Recvname,"./user/",buf);
+            Offline_Message_Srv(conn_fd,buf);
             for(j=0;j<fd_count;j++)
             {
                 t=t->next;
@@ -535,7 +539,7 @@ int main()
                     {
                         if((pid=fork())==0)  //创建一个新的进程，用于处理用户发来的信息，解析并转发给其他用户
                         {
-                            Send_Message(&recv_buf);
+                            Send_Message(s->sock_fd,&recv_buf);
                             exit(0);
                         }
                     }
