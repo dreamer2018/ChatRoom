@@ -11,11 +11,57 @@
 
 static const char USERINFO_DATA_FILE[] = "./data/UserInfo.dat";
 static const char GROUPCHAT_DATA_FILE[] ="./user/group/Chat.dat";
+typedef struct date
+{
+    int year;
+    int month;
+    int day;
+    int hour;
+    int minute;
+    int second;
+}date_t;
+
+
+//比较日期dt1, dt2的大小。相等返回0，dt1<dt2返回-1，否则1
+int DateCmp(date_t dt1,date_t dt2) 
+{
+	if (dt1.year < dt2.year)
+		return -1;
+	else if (dt1.year == dt2.year && dt1.month < dt2.month)
+		return -1;
+	else if (dt1.year == dt2.year && dt1.month == dt2.month && dt1.day < dt2.day)
+		return -1;
+	else if (dt1.year == dt2.year && dt1.month == dt2.month && dt1.day == dt2.day &&dt1.hour<dt2.hour)
+		return -1;
+	else if (dt1.year==dt2.year && dt1.month==dt2.month && dt1.day == dt2.day && dt1.hour==dt2.hour && dt1.minute<dt2.minute)
+        return -1;
+	else if (dt1.year==dt2.year && dt1.month==dt2.month && dt1.day == dt2.day && dt1.hour==dt2.hour && dt1.minute==dt2.minute)
+		return 0;
+    else
+        return 1;
+}
+
+int DateCmp_Srv(date_t dt1,date_t dt2,time_t time) //时间范围比较函数，调用DateCmp函数,在范围内返回1，不在返回0
+{
+    struct tm *p;
+    date_t date;
+    p=localtime(&time);
+    date.year=p->tm_year+1900;
+    date.month=p->tm_mon+1;
+    date.day=p->tm_mday;
+    date.hour=p->tm_hour;
+    date.minute=p->tm_min;
+    date.second=p->tm_sec;
+    if(DateCmp(dt1,date)<=0 && DateCmp(date,dt2)<=0)
+    {
+        return 1;
+    }
+    return 0;
+}
 
 int Exists(char *path)
 {
     FILE *fp;
-    //printf("%s\n",path);
     fp=fopen(path,"rb");
     if(fp==NULL)
     {
@@ -300,6 +346,164 @@ int Play_Perst_Update(const message_node_t *data)
 		}
 	}
 	fclose(fp);
+	return found;
+}
+
+
+int Private_Message_SelectByTime(char *name,date_t dt1,date_t dt2,message_node_t *list) 
+{
+	int found=0;
+	FILE *fp;
+    char file[50]="./";
+    strcat(file,name);
+    strcat(file,"/Private/Chat.dat");
+	fp=fopen(file,"rb");
+	if(fp==NULL)
+	{
+		printf("文件打开失败！\n");
+		return 0; 
+	}
+	else
+	{
+		List_Free(list,message_node_t);
+		message_node_t buf;
+		message_node_t *p;
+		p=(message_node_t *)malloc(sizeof(message_node_t));
+		while(fread(&buf,sizeof(message_node_t),1,fp)==1)
+		{
+           if(DateCmp_Srv(dt1,dt2,buf.Sendtime))
+            {
+                p->flag=buf.flag;
+    			p->Sendtime=buf.Sendtime;
+                strcpy(p->Sendname,buf.Sendname);
+                strcpy(p->Recvname,buf.Recvname);
+                strcpy(p->Message,buf.Message);
+                List_AddHead(list, p);
+	    		p=(message_node_t *)malloc(sizeof(message_node_t));
+		    	found++;
+		    }
+	    }
+    }
+	fclose(fp); 
+	return found;
+}
+
+
+int Group_Message_SelectByTime(char *name,date_t dt1,date_t dt2,message_node_t *list) 
+{
+	printf("test\n");
+    int found=0;
+	FILE *fp;
+    char file[50]="./";
+    strcat(file,name);
+    strcat(file,"/Group/Chat.dat");
+	fp=fopen(file,"rb");
+	if(fp==NULL)
+	{
+		printf("文件打开失败！\n");
+		return 0; 
+	}
+	else
+	{
+		List_Free(list,message_node_t);
+		message_node_t buf;
+		message_node_t *p;
+		p=(message_node_t *)malloc(sizeof(message_node_t));
+		while(fread(&buf,sizeof(message_node_t),1,fp)==1)
+		{
+            if(DateCmp_Srv(dt1,dt2,buf.Sendtime))
+            {
+                p->flag=buf.flag;
+	    		p->Sendtime=buf.Sendtime;
+                strcpy(p->Sendname,buf.Sendname);
+                strcpy(p->Recvname,buf.Recvname);
+                strcpy(p->Message,buf.Message);
+                List_AddHead(list, p);
+		    	p=(message_node_t *)malloc(sizeof(message_node_t));
+			    found++;
+		    }
+	    }
+    }
+	fclose(fp); 
+	return found;
+}
+
+
+int Private_Message_SelectByName(char *name,char *select_name,message_node_t *list) 
+{
+	int found=0;
+	FILE *fp;
+    char file[50]="./";
+    strcat(file,name);
+    strcat(file,"/Private/Chat.dat");
+	fp=fopen(file,"rb");
+	if(fp==NULL)
+	{
+		printf("文件打开失败！\n");
+		return 0; 
+	}
+	else
+	{
+		List_Free(list,message_node_t);
+		message_node_t buf;
+		message_node_t *p;
+		p=(message_node_t *)malloc(sizeof(message_node_t));
+		while(fread(&buf,sizeof(message_node_t),1,fp)==1)
+		{
+            if(!strcmp(buf.Sendname,select_name))
+            {
+                p->flag=buf.flag;
+    			p->Sendtime=buf.Sendtime;
+                strcpy(p->Sendname,buf.Sendname);
+                strcpy(p->Recvname,buf.Recvname);
+                strcpy(p->Message,buf.Message);
+                List_AddHead(list, p);
+	    		p=(message_node_t *)malloc(sizeof(message_node_t));
+		    	found++;
+	    	}
+	    }
+    }
+	fclose(fp); 
+	return found;
+}
+
+
+int Group_Message_SelectByName(char *name,char *select_name,message_node_t *list) 
+{
+	printf("test\n");
+    int found=0;
+	FILE *fp;
+    char file[50]="./";
+    strcat(file,name);
+    strcat(file,"/Group/Chat.dat");
+	fp=fopen(file,"rb");
+	if(fp==NULL)
+	{
+		printf("文件打开失败！\n");
+		return 0; 
+	}
+	else
+	{
+		List_Free(list,message_node_t);
+		message_node_t buf;
+		message_node_t *p;
+		p=(message_node_t *)malloc(sizeof(message_node_t));
+		while(fread(&buf,sizeof(message_node_t),1,fp)==1)
+		{
+            if(!strcmp(buf.Sendname,select_name))
+            {
+                p->flag=buf.flag;
+	    		p->Sendtime=buf.Sendtime;
+                strcpy(p->Sendname,buf.Sendname);
+                strcpy(p->Recvname,buf.Recvname);
+                strcpy(p->Message,buf.Message);
+                List_AddHead(list, p);
+		    	p=(message_node_t *)malloc(sizeof(message_node_t));
+			    found++;
+		    }
+	    }
+    }
+	fclose(fp); 
 	return found;
 }
 
