@@ -32,16 +32,16 @@
 char UserName[21];
 int exit_sign=0;
 
-
-
 int Chatting_Function(int conn_fd);
 int Login_Service(int sign,int argc,char *argv[]);
 void *threadrecv(void *vargp);
 void *threadsend(void *vargp);
 void print_time(time_t st_time); //日期解析函数
-void Get_Group_Chatting_Record();
-void Get_Private_Chatting_Record();                
-
+void Get_Group_Chatting_Record(int fla,date_t dt1,date_t dt2,char *name);
+void Get_Private_Chatting_Record(int flag,date_t dt1,date_t dt2,char *name);
+int DateCmp();
+int DateCmp_Srv();
+int Chat_Record_Srv(int sign);  //sign=1 私聊 sign=0 群聊
 
 int main(int argc,char *argv[]) //主函数
 {
@@ -93,7 +93,6 @@ int main(int argc,char *argv[]) //主函数
 }
 int Chatting_Service()
 {
-    int flag=1;
     char ch;
     do
     {
@@ -118,120 +117,251 @@ int Chatting_Service()
                 return 1;
             case '2':
                 system("clear");
-                Get_Group_Chatting_Record();
-		        break;
+		        Chat_Record_Srv(0);
+                break;
 		    case '3':
                 system("clear");
-                Get_Private_Chatting_Record();                
+                Chat_Record_Srv(1);
                 break; 
             case '4':
 		        return 0;       
 		}
-	}while(flag);
+	}while(1);
 }
 
-void Get_Private_Chatting_Record()
+int Chat_Record_Srv(int sign)  //sign=1 私聊 sign=0 群聊
 {
-	int i;
-    char choice;
-	message_node_t *head;
-	message_node_t *pos;
-	Pagination_t paging;
-	List_Init(head,message_node_t);
-	paging.offset=0;
-	paging.pageSize = PLAY_PAGE_SIZE;
-	paging.totalRecords = Private_Message_SelectAll(UserName,head);
-	Paging_Locate_FirstPage(head, paging);
-	do {
-		system("clear");
-		printf("\n\t\t\033[36m===================================================================\n");
-		printf("\t\t********************* Group Chat Records **************************\033[0m\n");
-		Paging_ViewPage_ForEach(head, paging, message_node_t , pos, i)
-        {
-            if(strcmp(pos->Sendname,UserName))
-            {
-                printf("\t\t\033[34m");
-                print_time(pos->Sendtime); //日期解析函数
-                printf("\033[0m");
-                printf("\t\t\033[35m%s\033[0m:%s\n",pos->Sendname,pos->Message);
-            }
-            else
-            {
-                printf("\t\t\033[34m");
-                printf("%48s"," ");
-                print_time(pos->Sendtime); //日期解析函数
-                printf("\033[0m");
-                printf("\t\t%58s\033[35m:%s\033[0m\n",pos->Message,pos->Sendname);     
-            }
-        }
-		printf("\t\t\033[36m==================================================================\n");
-		printf("\t\t-------- Total Records:%2d  -------------------- 页数: %2d/%2d ------\n",
-paging.totalRecords, Pageing_CurPage(paging),Pageing_TotalPages(paging));
-		printf("\t\t******************************************************************\n");
-		printf("\t\t**        [P]   上一页      [N]  下一页       [R]  返回       　**\n");
-        printf("\t\t******************************************************************\033[0m\n");
-		choice=getch();
-		switch (choice) 
-		{
-    		case 'p':	
-	    	case 'P':
-		    	if (!Pageing_IsFirstPage(paging))
-			    {
-				    Paging_Locate_OffsetPage(head, paging, -1, message_node_t);
-    			}
-	    		break;
-		    case 'n':
-    		case 'N':
-	    		if (!Pageing_IsLastPage(paging)) 
-		    	{
-			    	Paging_Locate_OffsetPage(head, paging, 1, message_node_t);
-    			}
-	    		break;
-	    }
-    }while(choice !='r' && choice != 'R');
-	List_Destroy(head,message_node_t);
-}
-
-void Get_Group_Chatting_Record()
-{
-	int i;
-    char choice;
-	message_node_t *head;
-	message_node_t *pos;
-	Pagination_t paging;
-	List_Init(head,message_node_t);
-	paging.offset=0;
-	paging.pageSize = PLAY_PAGE_SIZE;
-	paging.totalRecords = Group_Message_SelectAll(UserName,head);
-	Paging_Locate_FirstPage(head, paging);
-	do {
-		system("clear");
-		printf("\n\t\t\033[36m===================================================================\n");
-		printf("\t\t********************* Group Chat Records **************************\033[0m\n");
-		Paging_ViewPage_ForEach(head, paging, message_node_t , pos, i)
-        {
-            if(strcmp(pos->Sendname,UserName))
-            {
-                printf("\t\t\033[34m");
-                print_time(pos->Sendtime); //日期解析函数
-                printf("\033[0m");
-                printf("\t\t\033[35m%s\033[0m:%s\n",pos->Sendname,pos->Message);
-            }
-            else
-            {
-                printf("\t\t\033[34m");
-                printf("%48s"," ");
-                print_time(pos->Sendtime); //日期解析函数
-                printf("\033[0m");
-                printf("\t\t%58s\033[35m:%s\033[0m\n",pos->Message,pos->Sendname);     
-            }
+    char ch;
+    char name[21];
+    date_t dt1,dt2;
+    do
+    {
+        system("clear");
+	    printf("\t\t========================================================\n");
+	    printf("\t\t=++++++++++++++++++++++++++++++++++++++++++++++++++++++=\n");
+	    printf("\t\t=+               Chatting Service                     +=\n");
+	    printf("\t\t=+----------------------------------------------------+=\n");
+	    printf("\t\t=+                                                    +=\n");
+	    printf("\t\t=+          1.      Look At All                       +=\n");  //群聊记录
+	    printf("\t\t=+          2.    Look At By Time                     +=\n");  //私聊记录
+	    printf("\t\t=+          3.    Only See Person                     +=\n");  //私聊记录
+	    printf("\t\t=+          4. Return  Previous  Step                 +=\n");  //返回上一步
+	    printf("\t\t=+                                                    +=\n");
+	    printf("\t\t========================================================\n");
+	    printf("\t\tPlease Input Your Choice :");
+	    ch=getch();
+	    switch(ch)
+	    {
+	    	case '1':
+		        system("clear");
+                if(sign==1)
+                {
+                    Get_Private_Chatting_Record(0,dt1,dt2,name);  //查看全部为0，按时间查为1，按名查为2，
+                }
+                else
+                {
+                    Get_Group_Chatting_Record(0,dt1,dt2,name);
+                }
+                break;
+            case '2':
+                system("clear");
+                printf("Early Time(eg:2015 08 15 10 15):");
+                scanf("%d %d %d %d %d",&dt1.year,&dt1.month,&dt1.day,&dt1.hour,&dt1.minute);
+                getchar();
+                if(dt1.month>12 || dt1.month<=0 || dt1.day>31 || dt1.day<=0 || dt1.hour<0||dt1.hour>24 ||dt1.minute<0||dt1.minute>60)
+                {
+                    printf("\033[35mThe Time You Inter Not Correct !\033[0m\n");
+                    sleep(3);
+                    continue;
+                }
+                printf("Later Time(eg:2015 08 15 11 20):");
+                scanf("%d %d %d %d %d",&dt2.year,&dt2.month,&dt2.day,&dt2.hour,&dt2.minute);
+                getchar();
+                dt1.second=0;
+                dt2.second=0;
+                if(dt2.month>12 || dt2.month<=0 || dt2.day>31 || dt2.day<=0 || dt2.hour<0||dt2.hour>24 ||dt2.minute<0||dt2.minute>60)
+                {
+                    printf("\n\033[35mThe Time You Inter Not Correct !\033[0m\n");
+                    sleep(3);
+                    continue;
+                }
+                if(DateCmp(dt1,dt2)==1)
+                {
+                    printf("\n\033[35mEarly Time Must Sooner than Later Time !\033[0m\n");
+                    sleep(3);
+                    continue;
+                }
+                if(sign==1)
+                {
+                    Get_Private_Chatting_Record(1,dt1,dt2,name);  //查看全部为0，按时间查为1，按名查为2，
+                }
+                else
+                {
+                    Get_Group_Chatting_Record(1,dt1,dt2,name);
+                }
+		        break;
+		    case '3':
+                system("clear");
+                printf("Input You Need Look Up Person Name:");
+                scanf("%s",name); 
+                if(sign==1)
+                {
+                    Get_Private_Chatting_Record(2,dt1,dt2,name);  //查看全部为0，按时间查为1，按名查为2，
+                }
+                else
+                {
+                    Get_Group_Chatting_Record(2,dt1,dt2,name);
+                }
+		        break;               
+            case '4':
+		        return 0;       
 		}
-		printf("\t\t\033[36m==================================================================\n");
-		printf("\t\t-------- Total Records:%2d  -------------------- 页数: %2d/%2d ------\n",
+    }while(1);
+}
+void Get_Private_Chatting_Record(int sign,date_t dt1,date_t dt2,char *name)
+{
+	int i;
+    char choice;
+	message_node_t *head;
+	message_node_t *pos;
+	Pagination_t paging;
+	List_Init(head,message_node_t);
+	paging.offset=0;
+	paging.pageSize = PLAY_PAGE_SIZE;
+	if(sign==1)
+    {
+        paging.totalRecords = Private_Message_SelectByTime(UserName,dt1,dt2,head);
+    }
+    else if(sign==2)
+    {
+        paging.totalRecords = Private_Message_SelectByName(UserName,name,head);
+    }
+    else
+    {
+        paging.totalRecords = Private_Message_SelectAll(UserName,head);
+    }
+	Paging_Locate_FirstPage(head, paging);
+	do {
+		system("clear");
+		printf("\n\t\t\t\033[36m===================================================================\n");
+		printf("\t\t\t********************* Group Chat Records **************************\033[0m\n");
+		Paging_ViewPage_ForEach(head, paging, message_node_t , pos, i)
+        {
+            if(sign==2)
+            {
+		        printf("\t\t\t\033[34m");
+		        print_time(pos->Sendtime); //日期解析函数
+		        printf("\033[0m");
+	            printf("\t\t\t\033[35m%s\033[0m:%s\n",pos->Sendname,pos->Message);  
+            }
+            else
+            {
+    	        if(strcmp(pos->Sendname,UserName))
+	            {
+		            printf("\t\t\t\033[34m");
+		            print_time(pos->Sendtime); //日期解析函数
+		            printf("\033[0m");
+    	            printf("\t\t\t\033[35m%s\033[0m:%s\n",pos->Sendname,pos->Message);
+	    	    }
+                else
+	            {
+		            printf("\t\t\t\033[34m");
+    		        printf("%48s"," ");
+	                print_time(pos->Sendtime); //日期解析函数
+	                printf("\033[0m");
+		            printf("\t\t\t%58s\033[35m:%s\033[0m\n",pos->Message,pos->Sendname);     
+		        }
+		    }
+        }
+		printf("\t\t\t\033[36m==================================================================\n");
+		printf("\t\t\t-------- Total Records:%2d  -------------------- 页数: %2d/%2d ------\n",
 paging.totalRecords, Pageing_CurPage(paging),Pageing_TotalPages(paging));
-		printf("\t\t******************************************************************\n");
-		printf("\t\t**        [P]   上一页      [N]  下一页       [R]  返回       　**\n");
-        printf("\t\t******************************************************************\033[0m\n");
+		printf("\t\t\t******************************************************************\n");
+		printf("\t\t\t**        [P]   上一页      [N]  下一页       [R]  返回       　**\n");
+        printf("\t\t\t******************************************************************\033[0m\n");
+		choice=getch();
+        switch (choice) 
+		{
+    		case 'p':	
+	    	case 'P':
+		    	if (!Pageing_IsFirstPage(paging))
+			    {
+				    Paging_Locate_OffsetPage(head, paging, -1, message_node_t);
+    			}
+	    		break;
+		    case 'n':
+    		case 'N':
+	    		if (!Pageing_IsLastPage(paging)) 
+		    	{
+			    	Paging_Locate_OffsetPage(head, paging, 1, message_node_t);
+    			}
+	    		break;
+	    }
+    }while(choice !='r' && choice != 'R');
+	List_Destroy(head,message_node_t);
+}
+
+void Get_Group_Chatting_Record(int sign,date_t dt1,date_t dt2,char *name)
+{
+	int i;
+    char choice;
+	message_node_t *head;
+	message_node_t *pos;
+	Pagination_t paging;
+	List_Init(head,message_node_t);
+	paging.offset=0;
+	paging.pageSize = PLAY_PAGE_SIZE;
+	if(sign==1)
+    {
+        paging.totalRecords = Group_Message_SelectByTime(UserName,dt1,dt2,head);
+    }
+    else if(sign==2)
+    {
+        paging.totalRecords = Group_Message_SelectByName(UserName,name,head);
+    }
+    else
+    {
+        paging.totalRecords = Group_Message_SelectAll(UserName,head);
+    }
+    Paging_Locate_FirstPage(head, paging);
+	do {
+		system("clear");
+		printf("\n\t\t\t\033[36m===================================================================\n");
+		printf("\t\t\t********************* Group Chat Records **************************\033[0m\n");
+		Paging_ViewPage_ForEach(head, paging, message_node_t , pos, i)
+        {   
+	        if(sign==2)
+            {
+		        printf("\t\t\t\033[34m");
+		        print_time(pos->Sendtime); //日期解析函数
+	            printf("\033[0m");
+	            printf("\t\t\t\033[35m%s\033[0m:%s\n",pos->Sendname,pos->Message);  
+            }
+            else
+            {
+                if(strcmp(pos->Sendname,UserName))
+	            {
+		            printf("\t\t\t\033[34m");
+		            print_time(pos->Sendtime); //日期解析函数
+    	            printf("\033[0m");
+	                printf("\t\t\t\033[35m%s\033[0m:%s\n",pos->Sendname,pos->Message);
+		        }
+	            else
+    		    {
+	    	        printf("\t\t\t\033[34m");
+                    printf("%48s"," ");
+	                print_time(pos->Sendtime); //日期解析函数
+	                printf("\033[0m");
+    		        printf("\t\t\t%58s\033[35m:%s\033[0m\n",pos->Message,pos->Sendname);     
+	    	    }
+		    }
+        }
+		printf("\t\t\t\033[36m==================================================================\n");
+		printf("\t\t\t-------- Total Records:%2d  -------------------- 页数: %2d/%2d ------\n",
+paging.totalRecords, Pageing_CurPage(paging),Pageing_TotalPages(paging));
+		printf("\t\t\t******************************************************************\n");
+		printf("\t\t\t**        [P]   上一页      [N]  下一页       [R]  返回       　**\n");
+        printf("\t\t\t******************************************************************\033[0m\n");
 		choice=getch();
 		switch (choice) 
 		{
@@ -253,6 +383,7 @@ paging.totalRecords, Pageing_CurPage(paging),Pageing_TotalPages(paging));
     }while(choice !='r' && choice != 'R');
 	List_Destroy(head,message_node_t);
 }
+
 
 void passwd(char *password)
 {
