@@ -103,7 +103,7 @@ int Info_Match(char *name,char *passwd)  //信息匹配函数，用于进行密�
     return rtn;
 }
 
-int OnLine_Find_ByName(char *name)
+int OnLine_Find_ByName(char *name) //在线用户查询函数，在返回1不在返回0
 {
     int i,rtn=0;
     online_node_t *p;
@@ -118,14 +118,52 @@ int OnLine_Find_ByName(char *name)
     }
     return 0;
 }
-int Online_Select_ByName(online_node_t )
-{
 
-}
-int Offline_Message_Srv()
+int Offline_Message_Srv(int conn_fd,message_node_t *buf)  //离线消息发送函数
 {
-
+    message_node_t send_buf;
+    time_t now;
+    if(OnLine_Find_ByName(buf->Recvname)) //如果在线的话，消息会直接发送到接收者的客户端上，在此就不需要处理
+    {
+       return 0; 
+    }
+    else 
+    {
+        if(UserInfo_SelectByName(buf->Recvname))  //不在线的话，要查询用户是否注册
+        {
+            send_buf.flag=0;
+            time(&now);
+            send_buf.Sendtime=now;
+            strcpy(send_buf.Sendname,"system");
+            strcpy(send_buf.Recvname,buf->Sendname);
+            strcpy(send_buf.Message,"           Offline Message");
+            if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
+            {
+                Error_Log("send: ",strerror(errno));
+                exit(0);
+            }
+            if(!Offline_Message_Save(buf))
+            {
+               Error_Log("Offline_Message_Save: ","Offline Message Write Fail"); 
+            }
+        }
+        else //没有注册的话，直接返回给客户端此用户未注册
+        { 
+            send_buf.flag=0;
+            time(&now);
+            send_buf.Sendtime=now;
+            strcpy(send_buf.Sendname,"system");
+            strcpy(send_buf.Recvname,buf->Sendname);
+            sprintf(send_buf.Message,"%s:%s","Not Found This Name",buf->Recvname);
+            if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
+            {
+                Error_Log("send: ",strerror(errno));
+                exit(0);
+            }
+        }
+    }
 }
+
 int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息服务函数
 {
     int rtn=0;
