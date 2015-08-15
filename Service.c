@@ -118,6 +118,14 @@ int OnLine_Find_ByName(char *name)
     }
     return 0;
 }
+int Online_Select_ByName(online_node_t )
+{
+
+}
+int Offline_Message_Srv()
+{
+
+}
 int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息服务函数
 {
     int rtn=0;
