@@ -19,7 +19,6 @@ int main()
         time(&now);
     //    printf("%s",nowtime);
         print_time(now);
-      //  sleep(2);
     //}
 }
 
