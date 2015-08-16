@@ -19,7 +19,6 @@ int main()
         time(&now);
     //    printf("%s",nowtime);
         print_time(now);
-    //}
 }
 
 void print_time(time_t st_time) //日期解析函数
