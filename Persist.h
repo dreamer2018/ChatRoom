@@ -229,6 +229,25 @@ int Service_Message_Save(char *name,char *file,message_node_t *data)
 	return rtn;
 }
 
+int Offline_Message_Save(message_node_t *data)
+{  
+    char path[]="./user/offline/OffLine.dat";
+    int rtn=0;
+	FILE *fp;
+	fp=fopen(path,"ab");
+	if(fp==NULL)
+	{
+        Error_Log(path,":This File Open Fail!");
+    }
+	else
+	{
+		fwrite(data,sizeof(message_node_t),1,fp);
+		rtn=1;
+	}
+	fclose(fp);
+	return rtn; 
+}
+
 int Client_Message_Save(char *name,message_node_t *data)
 {
     char path[50]="./";
@@ -249,6 +268,7 @@ int Client_Message_Save(char *name,message_node_t *data)
 	fclose(fp);
 	return rtn;
 }
+
 
 int Client_Group_Message_Save(char *name,message_node_t *data)  //用户信息写入函数,返回1 表示操作成功，0 表示操作失败
 {
