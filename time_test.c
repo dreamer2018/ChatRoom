@@ -14,7 +14,6 @@ int main()
     int i;
     time_t now;
     char nowtime[30];
-    //for(i=0;i<5;i++)
     //{
         time(&now);
         print_time(now);
