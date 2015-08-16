@@ -15,7 +15,7 @@ int main()
     time_t now;
     char nowtime[30];
     time(&now);
-        print_time(now);
+    print_time(now);
 }
 
 void print_time(time_t st_time) //日期解析函数
