@@ -833,16 +833,21 @@ void *threadrecv(void *vargp)
             {
                 pthread_exit(0);
             }
-            printf("\n");
-            print_time(buf.Sendtime);
             if(buf.flag==4)
             {
-                printf("\033[45m%-6s\033[0m :\033[35m %s\033[0m\n",buf.Sendname,buf.Message);
+                print_time(buf.Sendtime);
+                printf("\n\033[45m%-6s\033[0m :\033[35m %s\033[0m\n",buf.Sendname,buf.Message);
                 Client_Message_Save(UserName,&buf);
+            }
+            else if(buf.flag==5)
+            {
+                printf("        \033[34m%s\033[0m\n",buf.Message);
+                Client_Group_Message_Save(UserName,&buf);
             }
             else
             {
-                printf("\033[34m%-6s\033[0m : %s\n",buf.Sendname,buf.Message);
+                print_time(buf.Sendtime);
+                printf("\n\033[34m%-6s\033[0m : %s\n",buf.Sendname,buf.Message);
                 Client_Group_Message_Save(UserName,&buf);
             }
         }
