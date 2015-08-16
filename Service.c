@@ -338,6 +338,7 @@ void Send_Message(int conn_fd,message_node_t *buf)
             }
             break;
         case 4:
+            if()
             Service_Message_Save(buf->Sendname,"./user/",buf);
             Service_Message_Save(buf->Recvname,"./user/",buf);
             Offline_Message_Srv(conn_fd,buf);
