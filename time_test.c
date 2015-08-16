@@ -17,7 +17,6 @@ int main()
     //for(i=0;i<5;i++)
     //{
         time(&now);
-    //    printf("%s",nowtime);
         print_time(now);
 }
 
