@@ -11,6 +11,10 @@
 
 static const char USERINFO_DATA_FILE[] = "./data/UserInfo.dat";
 static const char GROUPCHAT_DATA_FILE[] ="./user/group/Chat.dat";
+char OFFLINEMESSAGE_DATA_FILE[]="./user/offline/OffLine.dat";
+char OFFLINEMESSAGE_DATA_TEMP_FILE[]="./user/offline/OffLinetemp.dat";
+
+
 typedef struct date
 {
     int year;
@@ -79,7 +83,6 @@ int System_Init()
     int i;
     char path[][20]={"./sys/","./user/","./data/","./user/group","./user/offline"};
     char command[50];
-    
     char mkfile[][40]={"touch ./sys/Error.log","touch ./sys/Register.log","touch ./user/group/Chat.dat","touch ./data/UserInfo.dat","touch ./user/offline/OffLine.dat","touch ./sys/Help.ini"};
     
     for(i=0;i<5;i++)
@@ -231,13 +234,12 @@ int Service_Message_Save(char *name,char *file,message_node_t *data)
 
 int Offline_Message_Save(message_node_t *data)
 {  
-    char path[]="./user/offline/OffLine.dat";
     int rtn=0;
 	FILE *fp;
-	fp=fopen(path,"ab");
+	fp=fopen(OFFLINEMESSAGE_DATA_FILE,"ab");
 	if(fp==NULL)
 	{
-        Error_Log(path,":This File Open Fail!");
+        Error_Log(OFFLINEMESSAGE_DATA_FILE,":This File Open Fail!");
     }
 	else
 	{
@@ -246,6 +248,57 @@ int Offline_Message_Save(message_node_t *data)
 	}
 	fclose(fp);
 	return rtn; 
+}
+
+int Offline_Message_Select(char *Recvname,message_node_t *head)  //通过用户名，找到用户相关信息返回1表示找到，0表示未找到 
+{
+	int found=0;
+    message_node_t buf,*p;
+    List_Free(head,message_node_t);
+    FILE *fp1;
+    FILE *fp2;
+    if(Exists(OFFLINEMESSAGE_DATA_TEMP_FILE))
+    {
+        remove(OFFLINEMESSAGE_DATA_TEMP_FILE);
+    }
+    rename(OFFLINEMESSAGE_DATA_FILE,OFFLINEMESSAGE_DATA_TEMP_FILE);
+    fp1=fopen(OFFLINEMESSAGE_DATA_TEMP_FILE,"rb");
+    fp2=fopen(OFFLINEMESSAGE_DATA_FILE,"wb");
+    if(fp1==NULL)
+    {
+        Error_Log(OFFLINEMESSAGE_DATA_TEMP_FILE,": This File Open Fail !");
+        exit(0);
+    }
+    else if(fp2==NULL)
+    {
+        Error_Log(OFFLINEMESSAGE_DATA_FILE,": This File Open Fail!");
+        exit(0);
+    }
+    else
+    {
+        while(fread(&buf,sizeof(message_node_t),1,fp1)==1)
+        {
+        	if(!strcmp(Recvname,buf.Recvname))
+            {
+                p=(message_node_t *)malloc(sizeof(message_node_t));
+                p->flag=buf.flag;
+                strcpy(p->Sendname,buf.Sendname);
+                strcpy(p->Recvname,buf.Recvname);
+                strcpy(p->Message,buf.Message);
+                p->Sendtime=buf.Sendtime;
+                List_AddTail(head,p);
+                found++;
+            }
+            else
+            {
+                fwrite(&buf,sizeof(message_node_t),1,fp2);
+            }
+        }
+    }
+    fclose(fp1);
+    fclose(fp2);
+    remove(OFFLINEMESSAGE_DATA_TEMP_FILE);
+    return found;
 }
 
 int Client_Message_Save(char *name,message_node_t *data)
