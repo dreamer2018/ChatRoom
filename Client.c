@@ -42,6 +42,7 @@ void Get_Private_Chatting_Record(int flag,date_t dt1,date_t dt2,char *name);
 int DateCmp();
 int DateCmp_Srv();
 int Chat_Record_Srv(int sign);  //sign=1 私聊 sign=0 群聊
+void Change_Password(int sock_fd);  //修改密码函数
 
 int main(int argc,char *argv[]) //主函数
 {
@@ -91,7 +92,7 @@ int main(int argc,char *argv[]) //主函数
     }while(flag);
     printf("\n");
 }
-int Chatting_Service()
+int Chatting_Service(int conn_fd)
 {
     char ch;
     do
@@ -125,7 +126,8 @@ int Chatting_Service()
                 Chat_Record_Srv(1);
                 break; 
             case '4':
-		        return 0;
+		        Change_Password(conn_fd);
+                break;
             case '5':
                 return 0;
 		}
@@ -543,7 +545,10 @@ void Change_Password(int conn_fd)
     strcpy(buf.Sendname,Origin_Password);
     strcpy(buf.Recvname,New_Password);
     strcpy(buf.Message,"Change Password");
-    
+    if(send(conn_fd,&buf,sizeof(message_node_t),0)<0)
+    {
+        perror("send");
+    }
 }
 void Get_info(char *Nickname,char *Password)
 {
@@ -776,7 +781,7 @@ int Login_Service(int sign,int argc,char *argv[])
             memset(&buf,0,sizeof(message_node_t));
         }
     }
-    if(Chatting_Service())
+    if(Chatting_Service(conn_fd))
     {
         printf("***************************Begin Chatting***********************************\n");
         pthread_create(&tid1,NULL,threadsend,&conn_fd);
