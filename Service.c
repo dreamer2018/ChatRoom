@@ -262,10 +262,12 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
     }
     return rtn;
 }
-void System_command(message_node_t *buf)
+
+void System_command(message_node_t *buf,int conn_fd)
 {
     int i;
     online_node_t *p;
+    message_node_t send_buf;
     p=head;
     time_t now;
     if(!strncmp(buf->Message,"quit",4))
@@ -283,7 +285,53 @@ void System_command(message_node_t *buf)
                     exit(0);
                 }
             }
-        } 
+        }
+    }
+    else if(!strncmp(buf->Message,"online",6))
+    {
+        time(&now);
+        send_buf.flag=6;
+        send_buf.Sendtime=now;
+        strcpy(send_buf.Sendname,"system");
+        strcpy(send_buf.Recvname,buf->Sendname);
+        sprintf(send_buf.Message,"Total %d People Online,Threre is:",fd_count-1);
+        if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
+        {
+            Error_Log("send: ",strerror(errno));
+            exit(0);
+        }
+        for(i=0;i<fd_count-1;i++)
+        {
+            p=p->next;
+            memset(&send_buf,0,sizeof(message_node_t));
+            time(&now);
+            send_buf.flag=6;
+            send_buf.Sendtime=now;
+            strcpy(send_buf.Sendname,"system");
+            strcpy(send_buf.Recvname,buf->Sendname);
+            strcpy(send_buf.Message,p->name);
+            if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
+            {
+                Error_Log("send: ",strerror(errno));
+                exit(0);
+            } 
+        }
+    }
+    else
+    {
+        time(&now);
+        send_buf.flag=6;
+        send_buf.Sendtime=now;
+        strcpy(send_buf.Sendname,"system");
+        strcpy(send_buf.Recvname,buf->Sendname);
+        sprintf(send_buf.Message,"Not Found This Commond: %s",buf->Message);
+        
+        if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
+        {
+            Error_Log("send: ",strerror(errno));
+            exit(0);
+        }
+
     }
 }
 int Send_Message(int conn_fd,message_node_t *buf)
@@ -296,7 +344,7 @@ int Send_Message(int conn_fd,message_node_t *buf)
     switch(buf->flag)
     {
         case 0:
-            System_command(buf);
+            System_command(buf,conn_fd);
             break;
         case 3:
             Service_Group_Message_Save("./user/group/Chat.dat",buf);
