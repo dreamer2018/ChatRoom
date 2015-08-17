@@ -256,7 +256,7 @@ void Get_Private_Chatting_Record(int sign,date_t dt1,date_t dt2,char *name)
             }
             else
             {
-    	        if(strcmp(pos->Sendname,UserName))
+    	        if(!strcmp(pos->Sendname,UserName))
 	            {
 		            printf("\t\t\t\033[34m");
 		            print_time(pos->Sendtime); //日期解析函数
@@ -339,7 +339,7 @@ void Get_Group_Chatting_Record(int sign,date_t dt1,date_t dt2,char *name)
             }
             else
             {
-                if(strcmp(pos->Sendname,UserName))
+                if(!strcmp(pos->Sendname,UserName))
 	            {
 		            printf("\t\t\t\033[34m");
 		            print_time(pos->Sendtime); //日期解析函数
@@ -603,6 +603,13 @@ void print_time(time_t st_time) //日期解析函数
     printf("%d-%.2d-%.2d %.2d:%.2d:%.2d\n",p->tm_year+1900,p->tm_mon+1,p->tm_mday,p->tm_hour,p->tm_min,p->tm_sec);
 }
 
+void Simply_time(time_t st_time)
+{
+    struct tm *p;
+    p=localtime(&st_time);
+    printf("%.2d:%.2d:%.2d",p->tm_hour,p->tm_min,p->tm_sec);
+}
+
 int Login_Service(int sign,int argc,char *argv[])
 {   
     int i;
@@ -702,7 +709,7 @@ int Login_Service(int sign,int argc,char *argv[])
     }
     if(Chatting_Service())
     {
-        printf("********************Begin Chatting********************\n");
+        printf("***************************Begin Chatting***********************************\n");
         pthread_create(&tid1,NULL,threadsend,&conn_fd);
         pthread_create(&tid2,NULL,threadrecv,&conn_fd);
         pthread_join(tid2,(void *)&status);
@@ -732,9 +739,10 @@ void *threadsend(void * vargp)
             printf("Send Fail,Message Too Long\n");
             continue;
         }
-        printf("      send  Success! ");
-        print_time(now);
-        printf("\n");
+        printf("      send success! ");
+        //print_time(now);
+        Simply_time(now);
+        printf("\n\n");
         if(!strncmp(temp,"@",1))
         {
             int i,j=-1,k=-1;
@@ -835,19 +843,27 @@ void *threadrecv(void *vargp)
             }
             if(buf.flag==4)
             {
-                print_time(buf.Sendtime);
-                printf("\033[45m%-6s\033[0m :\033[35m %s\033[0m\n",buf.Sendname,buf.Message);
+                printf("\n%68s"," ");
+                Simply_time(buf.Sendtime);
+                printf("\n");
+                printf("\033[35m%65s\033[0m :\033[45m %8s\033[0m\n",buf.Message,buf.Sendname);
                 Client_Message_Save(UserName,&buf);
             }
             else if(buf.flag==5)
             {
-                printf("        \033[34m%s\033[0m\n",buf.Message);
-                Client_Group_Message_Save(UserName,&buf);
+                printf("    \033[36m%s\033[0m\n",buf.Message);
+                Client_Message_Save(UserName,&buf);
+            }
+            else if(buf.flag==6)
+            {
+                printf("\033[36m%s\033[0m\n",buf.Message);
             }
             else
             {
-                print_time(buf.Sendtime);
-                printf("\033[34m%-6s\033[0m : %s\n",buf.Sendname,buf.Message);
+                printf("\n%68s"," ");
+                Simply_time(buf.Sendtime);
+                printf("\n");
+                printf("%65s : \033[34m%8s\033[0m\n",buf.Message,buf.Sendname);
                 Client_Group_Message_Save(UserName,&buf);
             }
         }
