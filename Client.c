@@ -105,7 +105,8 @@ int Chatting_Service()
 	    printf("\t\t=+          1.     Chat       Now                     +=\n");  //开始聊天
 	    printf("\t\t=+          2.  Group  Chat  Records                  +=\n");  //群聊记录
 	    printf("\t\t=+          3.  Private Chat Records                  +=\n");  //私聊记录
-	    printf("\t\t=+          4. Return  Previous  Step                 +=\n");  //返回上一步
+	    printf("\t\t=+          4.    Change Password                     +=\n");  //私聊记录
+	    printf("\t\t=+          5. Return  Previous  Step                 +=\n");  //返回上一步
 	    printf("\t\t=+                                                    +=\n");
 	    printf("\t\t========================================================\n");
 	    printf("\t\tPlease Input Your Choice :");
@@ -124,7 +125,9 @@ int Chatting_Service()
                 Chat_Record_Srv(1);
                 break; 
             case '4':
-		        return 0;       
+		        return 0;
+            case '5':
+                return 0;
 		}
 	}while(1);
 }
@@ -384,25 +387,48 @@ paging.totalRecords, Pageing_CurPage(paging),Pageing_TotalPages(paging));
 	List_Destroy(head,message_node_t);
 }
 
-
 void passwd(char *password)
 {
-    int i,flag;
+    int i=0,flag;
     char ch;
-    for(i=0;;i++)
+
+    system("stty -echo");
+    system("stty -icanon");
+    
+    while(1)
     {
-        ch=getch();
+        ch=getchar();
         if(ch=='\n')
         {
             printf("\n");
             break;
-        }
-        if(i<20)
+        } 
+        
+        if(ch==127)
         {
-            password[i]=ch;
-            putchar('*');
+            if(i>=1)
+            {
+                printf("\b");
+                printf(" ");
+                printf("\b");
+                i--;
+                continue;
+            }
+        }
+        else
+        {
+            if(i<20)
+            {
+                password[i]=ch;
+                putchar('*');
+                i++;
+            }
         }
     }
+
+    system("stty icanon");
+    system("stty echo");
+    
     if(i<20)
     {
         password[i]='\0';
@@ -412,24 +438,49 @@ void passwd(char *password)
         password[20]='\0';
     }
 }
+
 void getname(char *name)
 {
-    int i,flag;
+    int i=0,flag;
     char ch;
-    for(i=0;;i++)
+    
+    system("stty -echo");
+    system("stty -icanon");
+    
+    while(1)
     {
-        ch=getch();
+        ch=getchar();
         if(ch=='\n')
         {
             printf("\n");
             break;
-        }
-        if(i<20)
+        } 
+        
+        if(ch==127)
         {
-            name[i]=ch;
-            putchar(name[i]);
+            if(i>=1)
+            {
+                printf("\b");
+                printf(" ");
+                printf("\b");
+                i--;
+                continue;
+            }
+        }
+        else
+        {
+            if(i<20)
+            {
+                name[i]=ch;
+                putchar(ch);
+                i++;
+            }
         }
     }
+
+    system("stty icanon");
+    system("stty echo");
+    
     if(i<20)
     {
         name[i]='\0';
@@ -461,26 +512,42 @@ int getpasswd(char *password)
     return 1;
 }
 
+void Change_Password(int conn_fd)
+{
+    int i;
+    message_node_t buf;
+    time_t now;
+    char Nickname[21];
+    char Origin_Password[21];
+    char New_Password[21];
+    printf("Please Input Original Password:");
+    passwd(Origin_Password);
+    for(i=0;i<10;i++)
+    {
+        if(!getpasswd(New_Password))
+        {
+            printf("Two Entered Password Diff,Please Try Again!\n");
+        }
+        else if(strlen(New_Password)<6)
+        {
+            printf("This Password Less Than Six Characters!\n");
+        }
+        else
+        {
+            break;
+        }
+    }
+    buf.flag=7;
+    strcpy(buf.Sendname,Origin_Password);
+    strcpy(buf.Recvname,New_Password);
+      
+}
 void Get_info(char *Nickname,char *Password)
 {
     int i,j;
     char buf[BUFMAX];
-    while(1)
-    {
-        printf("Please Input Your Nickname:");
-        scanf("%s",buf);
-        getchar();
-        if(strlen(buf)<21)
-        {
-            strncpy(Nickname,buf,20);
-            Nickname[20]='\0';
-            break;
-        }
-        else
-        {
-            printf("\033[35mYour Nickname length more than 20,Please Input Again !\033[0m\n\n");
-        }
-    }
+    printf("Please Input Your Nickname:");
+    getname(Nickname);
     for(i=0;i<10;i++)
     {
         if(!getpasswd(Password))
@@ -555,8 +622,7 @@ int Sign_In(int sock_fd,struct sockaddr_in serv_addr,message_node_t *recv_buf)
     time_t now;
     message_node_t send_buf;
     printf("Please Input Your Nickname:");
-    scanf("%s",Nickname);
-    getchar();
+    getname(Nickname);
     printf("Please Input Your Password:");
     passwd(Password);
     send_buf.flag=2;
