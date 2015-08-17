@@ -119,50 +119,23 @@ int OnLine_Find_ByName(char *name) //在线用户查询函数，在返回1不在
     return 0;
 }
 
-int Offline_Message_Srv(int conn_fd,message_node_t *buf)  //离线消息发送函数
+int Offline_Message_Send(int conn_fd,char *name)  //离线消息发送函数
 {
-    message_node_t send_buf;
-    time_t now;
-    if(OnLine_Find_ByName(buf->Recvname)) //如果在线的话，消息会直接发送到接收者的客户端上，在此就不需要处理
+    int count=0,i;
+    message_node_t *head,*p;
+    List_Init(head,message_node_t);
+    count=Offline_Message_Select(name,head);
+    printf("count=%d\n",count);
+    p=head;
+    if(count>0)
     {
-       return 0; 
-    }
-    else 
-    {
-        if(UserInfo_SelectByName(buf->Recvname))  //不在线的话，要查询用户是否注册
+        for(i=0;i<count;i++)
         {
-            send_buf.flag=5;
-            time(&now);
-            send_buf.Sendtime=now;
-            strcpy(send_buf.Sendname,"system");
-            strcpy(send_buf.Recvname,buf->Sendname);
-            strcpy(send_buf.Message,"           Offline Message");
-            if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
+            p=p->next;
+            if(send(conn_fd,p,sizeof(message_node_t),0)<0)
             {
                 Error_Log("send: ",strerror(errno));
-                exit(0);
             }
-            if(!Offline_Message_Save(buf))
-            {
-                Error_Log("Offline_Message_Save: ","Offline Message Write Fail");
-                return 0;
-            }
-            return 1;
-        }
-        else //没有注册的话，直接返回给客户端此用户未注册
-        { 
-            send_buf.flag=5;
-            time(&now);
-            send_buf.Sendtime=now;
-            strcpy(send_buf.Sendname,"system");
-            strcpy(send_buf.Recvname,buf->Sendname);
-            sprintf(send_buf.Message,"%s:%s","Not Found This Name",buf->Recvname);
-            if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
-            {
-                Error_Log("send: ",strerror(errno));
-                exit(0);
-            }
-            return 0;
         }
     }
 }
@@ -313,11 +286,13 @@ void System_command(message_node_t *buf)
         } 
     }
 }
-void Send_Message(int conn_fd,message_node_t *buf)
+int Send_Message(int conn_fd,message_node_t *buf)
 {
     int j;
+    message_node_t send_buf;
     online_node_t *t;
-    t=head; 
+    t=head;
+    time_t now;
     switch(buf->flag)
     {
         case 0:
@@ -338,26 +313,64 @@ void Send_Message(int conn_fd,message_node_t *buf)
             }
             break;
         case 4:
-            if()
-            Service_Message_Save(buf->Sendname,"./user/",buf);
-            Service_Message_Save(buf->Recvname,"./user/",buf);
-            Offline_Message_Srv(conn_fd,buf);
-            for(j=0;j<fd_count;j++)
+            if(UserInfo_SelectByName(buf->Recvname))
             {
-                t=t->next;
-                if (!strcmp(t->name,buf->Recvname))
+                Service_Message_Save(buf->Sendname,"./user/",buf);
+                Service_Message_Save(buf->Recvname,"./user/",buf);
+                if(OnLine_Find_ByName(buf->Recvname)) //如果在线的话，消息会直接发送到接收者的客户端上，在此就不需要处理
                 {
-                    if(send(t->sock_fd,buf,sizeof(message_node_t),0)<0)
+                    for(j=0;j<fd_count;j++)
+                    {
+                        t=t->next;
+                        if (!strcmp(t->name,buf->Recvname))
+                        {
+                            if(send(t->sock_fd,buf,sizeof(message_node_t),0)<0)
+                            {
+                                Error_Log("send: ",strerror(errno));
+                                exit(0);
+                            }
+                        }
+                    }
+                    break;
+                }
+                else  //如果不在线的话，就启动离线消息机制
+                {
+                    Offline_Message_Save(buf); //将消息内容保存到文件中暂存起来
+                    send_buf.flag=5;
+                    time(&now);
+                    send_buf.Sendtime=now;
+                    strcpy(send_buf.Sendname,"system");
+                    strcpy(send_buf.Recvname,buf->Sendname);
+                    strcpy(send_buf.Message,"           Offline Message");
+                    if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
                     {
                         Error_Log("send: ",strerror(errno));
                         exit(0);
                     }
+                    if(!Offline_Message_Save(buf))
+                    {
+                        Error_Log("Offline_Message_Save: ","Offline Message Write Fail");
+                        return 0;
+                    }
                 }
             }
-            break;
+            else
+            {
+                send_buf.flag=5;
+                time(&now);
+                send_buf.Sendtime=now;
+                strcpy(send_buf.Sendname,"system");
+                strcpy(send_buf.Recvname,buf->Sendname);
+                sprintf(send_buf.Message,"%s:%s","Not Found This Name",buf->Recvname);
+                if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
+                {
+                    Error_Log("send: ",strerror(errno));
+                    exit(0);
+                }
+                return 0;
+            }
     }
 }
-
 
 int main()
 {
@@ -460,6 +473,11 @@ int main()
                         FD_SET(p->sock_fd,&readfds);
                         fd_count++;
                         printf("adding client on fd %d name:%s\n",p->sock_fd,p->name);
+                        if((pid=fork())==0)
+                        {
+                            Offline_Message_Send(p->sock_fd,p->name);
+                            exit(0);
+                        }
                         if((pid=fork())==0)
                         {
                             message_node_t buf;
