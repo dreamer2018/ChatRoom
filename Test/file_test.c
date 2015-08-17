@@ -126,9 +126,11 @@ int Client_Init(char *user_name)
 }
 int main()
 {
-    System_Init();
-    User_Init("zhoufre");
-    Client_Init("adminfffffffffffffff");
-    system("cat file_test.c");
+    //System_Init();
+   // User_Init("zhoufre");
+    //Client_Init("adminfffffffffffffff");
+    //system("cat file_test.c");
+    //    rename("./hehe.txt","./lala.txt");
+    remove("./lala.txt");
 }
 
