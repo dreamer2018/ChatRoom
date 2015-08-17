@@ -542,9 +542,9 @@ void Change_Password(int conn_fd)
     buf.flag=7;
     time(&now);
     buf.Sendtime=now;
-    strcpy(buf.Sendname,Origin_Password);
+    strcpy(buf.Sendname,UserName);
     strcpy(buf.Recvname,New_Password);
-    strcpy(buf.Message,"Change Password");
+    strcpy(buf.Message,Origin_Password);
     if(send(conn_fd,&buf,sizeof(message_node_t),0)<0)
     {
         perror("send");
