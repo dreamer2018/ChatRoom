@@ -331,8 +331,13 @@ void System_command(message_node_t *buf,int conn_fd)
             Error_Log("send: ",strerror(errno));
             exit(0);
         }
-
+        
     }
+}
+
+void Change_Password_Srv(message_node_t *buf)
+{
+    
 }
 int Send_Message(int conn_fd,message_node_t *buf)
 {
@@ -417,6 +422,9 @@ int Send_Message(int conn_fd,message_node_t *buf)
                 }
                 return 0;
             }
+        case 7:
+            Change_Password_Srv(buf);
+            break;
     }
 }
 
