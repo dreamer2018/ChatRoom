@@ -1,4 +1,4 @@
-/*************************************************************************
+ /*************************************************************************
 	> File Name: passwd.c
 	> Author: ZhouPan / github:dreamer2018 
 	> Blog: blog.csdn.net/it_dream_er 
@@ -10,26 +10,51 @@
 #include<string.h>
 #include<stdlib.h>
 #include"conio.h"
+
 #define STRMAX 100
 
 void passwd(char *password)
 {
-    int i,flag;
+    int i=0,flag;
     char ch;
-    for(i=0;;i++)
+
+    system("stty -echo");
+    system("stty -icanon");
+    
+    while(1)
     {
-        ch=getch();
+        ch=getchar();
         if(ch=='\n')
         {
             printf("\n");
             break;
-        }
-        if(i<20)
+        } 
+        
+        if(ch==127)
         {
-            password[i]=ch;
-            putchar('*');
+            if(i>=1)
+            {
+                printf("\b");
+                printf(" ");
+                printf("\b");
+                i--;
+                continue;
+            }
+        }
+        else
+        {
+            if(i<20)
+            {
+                password[i]=ch;
+                putchar('*');
+                i++;
+            }
         }
     }
+
+    system("stty icanon");
+    system("stty echo");
+    
     if(i<20)
     {
         password[i]='\0';
@@ -39,24 +64,49 @@ void passwd(char *password)
         password[20]='\0';
     }
 }
+
 void getname(char *name)
 {
-    int i,flag;
+    int i=0,flag;
     char ch;
-    for(i=0;;i++)
+    
+    system("stty -echo");
+    system("stty -icanon");
+    
+    while(1)
     {
-        ch=getch();
+        ch=getchar();
         if(ch=='\n')
         {
             printf("\n");
             break;
-        }
-        if(i<20)
+        } 
+        
+        if(ch==127)
         {
-            name[i]=ch;
-            putchar(name[i]);
+            if(i>=1)
+            {
+                printf("\b");
+                printf(" ");
+                printf("\b");
+                i--;
+                continue;
+            }
+        }
+        else
+        {
+            if(i<20)
+            {
+                name[i]=ch;
+                putchar(ch);
+                i++;
+            }
         }
     }
+
+    system("stty icanon");
+    system("stty echo");
+    
     if(i<20)
     {
         name[i]='\0';
@@ -94,9 +144,7 @@ int main()
     char Nickname[21];
     char Password[21];
     printf("Please Input Your Nickname:");
-    //getname(Nickname);
-    scanf("%s",Nickname);
-    getchar();
+    getname(Nickname);
     for(i=0;i<10;i++)
     {
         if(!getpasswd(Password))
@@ -113,5 +161,5 @@ int main()
             break;
         }
     }
-    printf("Nickname:%s Password:%s\n",Nickname,Password);
+    printf("%s %s \n",Nickname,Password);
 }
