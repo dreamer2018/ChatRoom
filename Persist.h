@@ -395,7 +395,7 @@ int UserInfo_Perst_Select(char *name,message_node_t *buf)  //通过用户名，�
 }
 
 //将参数所指向的新信息写入到文件中，返回0表示操作失败，返回1表示操作成功
-int Play_Perst_Update(const message_node_t *data) 
+int User_Passwd_Update(message_node_t *data) 
 {
 	FILE *fp = fopen(USERINFO_DATA_FILE, "rb+");
 	if (NULL == fp)
