@@ -538,9 +538,12 @@ void Change_Password(int conn_fd)
         }
     }
     buf.flag=7;
+    time(&now);
+    buf.Sendtime=now;
     strcpy(buf.Sendname,Origin_Password);
     strcpy(buf.Recvname,New_Password);
-      
+    strcpy(buf.Message,"Change Password");
+    
 }
 void Get_info(char *Nickname,char *Password)
 {
