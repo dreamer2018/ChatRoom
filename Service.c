@@ -73,6 +73,7 @@ typedef struct Message
 
 typedef struct On_Line     
 {
+    int flag;         //用户状态-1代表正常，非-1代表繁忙
     char name[21];    //在线的用户名
     int sock_fd;      //在线用户套接字描述符
     char address[20]; //在线用户ip
@@ -475,18 +476,35 @@ int Send_Message(int conn_fd,message_node_t *buf)
                         t=t->next;
                         if (!strcmp(t->name,buf->Recvname))
                         {
-                            if(send(t->sock_fd,buf,sizeof(message_node_t),0)<0)
+                            if(t->flag!=t->sock_fd)
+                            {   
+                                send_buf.flag=8;
+                                time(&now);
+                                send_buf.Sendtime=now;
+                                strcpy(send_buf.Sendname,"system");
+                                strcpy(send_buf.Recvname,buf->Sendname);
+                                sprintf(send_buf.Message,"%s Is Busy",buf->Recvname);
+                                if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
+                                {
+                                    Error_Log("send: ",strerror(errno));
+                                    exit(0);
+                                }  
+                            } 
+                            else
                             {
-                                Error_Log("send: ",strerror(errno));
-                                exit(0);
+                                t->flag=t->sock_fd;
+                                if(send(t->sock_fd,buf,sizeof(message_node_t),0)<0)
+                                {
+                                    Error_Log("send: ",strerror(errno));
+                                    exit(0);
+                                }
                             }
                         }
+                        break;
                     }
-                    break;
                 }
                 else  //如果不在线的话，就启动离线消息机制
                 {
-                    Offline_Message_Save(buf); //将消息内容保存到文件中暂存起来
                     send_buf.flag=8;
                     time(&now);
                     send_buf.Sendtime=now;
@@ -612,6 +630,7 @@ int main()
                     if(sign==1)
                     {
                         p=(online_node_t *)malloc(sizeof(online_node_t));
+                        p->flag=0;
                         strcpy(p->name,newName);
                         p->sock_fd=conn_fd;
                         strcpy(p->address,inet_ntoa(clt_sock.sin_addr));
