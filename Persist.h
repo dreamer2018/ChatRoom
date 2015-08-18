@@ -400,8 +400,8 @@ int User_Passwd_Update(message_node_t *data)
 	FILE *fp = fopen(USERINFO_DATA_FILE, "rb+");
 	if (NULL == fp)
 	{
-		printf("打开文件失败！");
-		return 0;
+		Error_Log(USERINFO_DATA_FILE,"This File Open Fail !");
+        return 0;
 	}
 	message_node_t buf;
 	int found = 0;
