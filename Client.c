@@ -814,7 +814,6 @@ void *threadsend(void * vargp)
             continue;
         }
         printf("      send success! ");
-        //print_time(now);
         Simply_time(now);
         printf("\n\n");
         if(!strncmp(temp,"@",1))
