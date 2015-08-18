@@ -614,6 +614,7 @@ int Register(int sock_fd,struct sockaddr_in serv_addr)
     memset(&send_buf,0,sizeof(message_node_t));
     send_buf.flag=1;
     strcpy(send_buf.Sendname,Nickname);
+    Password_Encryption(Password);
     strcpy(send_buf.Recvname,Password);
     strcpy(send_buf.Message,"Register");
     time(&now);
@@ -661,9 +662,9 @@ int Sign_In(int sock_fd,struct sockaddr_in serv_addr,message_node_t *recv_buf)
     Getname(Nickname);
     printf("Please Input Your Password:");
     Passwd(Password);
-    Password_Encryption(Password);
     send_buf.flag=2;
     strcpy(send_buf.Sendname,Nickname);
+    Password_Encryption(Password);
     strcpy(send_buf.Recvname,Password);
     strcpy(send_buf.Message,"Sign in");
     time(&now);
