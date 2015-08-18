@@ -335,9 +335,20 @@ void System_command(message_node_t *buf,int conn_fd)
     }
 }
 
-void Change_Password_Srv(message_node_t *buf)
+int Change_Password_Srv(message_node_t *buf)
 {
-    
+    time_t now;
+    message_node_t data;
+    UserInfo_Perst_Select(buf->Sendname,&data);
+    if(!strcmp(buf->Message,data.Recvname))
+    {
+        User_Passwd_Update(buf);
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 int Send_Message(int conn_fd,message_node_t *buf)
 {
@@ -423,7 +434,36 @@ int Send_Message(int conn_fd,message_node_t *buf)
                 return 0;
             }
         case 7:
-            Change_Password_Srv(buf);
+            if(Change_Password_Srv(buf))
+            {
+                send_buf.flag=6;
+                time(&now);
+                send_buf.Sendtime=now;
+                strcpy(send_buf.Sendname,"system");
+                strcpy(send_buf.Recvname,buf->Sendname);
+                strcpy(send_buf.Message,"Change Password Success!");
+                
+                if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
+                {
+                    Error_Log("send",strerror(errno));
+                    exit(0);
+                }
+            }
+            else
+            {
+                send_buf.flag=6;
+                time(&now);
+                send_buf.Sendtime=now;
+                strcpy(send_buf.Sendname,"system");
+                strcpy(send_buf.Recvname,buf->Sendname);
+                strcpy(send_buf.Message,"Original Password Incorrect,Change Password fail!");
+                
+                if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
+                {
+                    Error_Log("send",strerror(errno));
+                    exit(0);
+                }
+            }
             break;
     }
 }
