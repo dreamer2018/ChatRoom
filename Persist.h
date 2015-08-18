@@ -633,7 +633,6 @@ int Group_Message_SelectAll(char *name,message_node_t *list)
 	}
 	else
 	{
-        printf("tets___\n");
 		List_Free(list,message_node_t);
 		message_node_t buf;
 		message_node_t *p;
