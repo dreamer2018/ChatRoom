@@ -20,9 +20,21 @@ void password_encryption(char *password)
 
 int main()
 {
-    char password[21];
-    gets(password);
-    printf("%s\n",password);
-    password_encryption(password);
-    printf("%s\n",password);
+    char password1[21];
+    char password2[21];
+    gets(password1);
+    printf("%s\n",password1);
+    password_encryption(password1);
+    gets(password2);
+    printf("%s\n",password2);
+    password_encryption(password2);
+    if(strcmp(password1,password2))
+    {
+        printf("Diff\n");
+    }
+    else
+    {
+        printf("same\n");
+    }
+
 }
