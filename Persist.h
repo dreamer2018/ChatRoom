@@ -599,7 +599,7 @@ int Private_Message_SelectAll(char *name,message_node_t *list)
 		List_Free(list,message_node_t);
 		message_node_t buf;
 		message_node_t *p;
-		//p=(message_node_t *)malloc(sizeof(message_node_t));
+		p=(message_node_t *)malloc(sizeof(message_node_t));
 		while(fread(&buf,sizeof(message_node_t),1,fp)==1)
 		{
             p->flag=buf.flag;
