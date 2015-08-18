@@ -465,6 +465,56 @@ int Send_Message(int conn_fd,message_node_t *buf)
                 }
             }
             break;
+        case 8 :  //文件传输标识
+            if(UserInfo_SelectByName(buf->Recvname))
+            {
+                if(OnLine_Find_ByName(buf->Recvname)) //如果在线的话，消息会直接发送到接收者的客户端上，在此就不需要处理
+                {
+                    for(j=0;j<fd_count;j++)
+                    {
+                        t=t->next;
+                        if (!strcmp(t->name,buf->Recvname))
+                        {
+                            if(send(t->sock_fd,buf,sizeof(message_node_t),0)<0)
+                            {
+                                Error_Log("send: ",strerror(errno));
+                                exit(0);
+                            }
+                        }
+                    }
+                    break;
+                }
+                else  //如果不在线的话，就启动离线消息机制
+                {
+                    Offline_Message_Save(buf); //将消息内容保存到文件中暂存起来
+                    send_buf.flag=8;
+                    time(&now);
+                    send_buf.Sendtime=now;
+                    strcpy(send_buf.Sendname,"system");
+                    strcpy(send_buf.Recvname,buf->Sendname);
+                    sprintf(send_buf.Message," %s Not Online",buf->Recvname);
+                    if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
+                    {
+                        Error_Log("send: ",strerror(errno));
+                        exit(0);
+                    }
+                }
+            }
+            else
+            {
+                send_buf.flag=8;
+                time(&now);
+                send_buf.Sendtime=now;
+                strcpy(send_buf.Sendname,"system");
+                strcpy(send_buf.Recvname,buf->Sendname);
+                sprintf(send_buf.Message,"%s:%s","Not Found This Name",buf->Recvname);
+                if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
+                {
+                    Error_Log("send: ",strerror(errno));
+                    exit(0);
+                }
+                return 0;
+            }
     }
 }
 
