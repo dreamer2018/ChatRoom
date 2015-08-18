@@ -92,6 +92,18 @@ int main(int argc,char *argv[]) //主函数
     }while(flag);
     printf("\n");
 }
+
+void Help()
+{
+    printf("------------------------------------------------------------\n");
+    printf("------                   Help                         ------\n");
+    printf("------------------------------------------------------------\n");
+    printf("------    //help             help me                  ------\n");
+    printf("------    //online      View the online users         ------\n");
+    printf("------    //quit             log out                  ------\n");
+    printf("------    @someone   Chatting Witn someone alone      ------\n");
+    printf("------------------------------------------------------------\n");
+}
 int Chatting_Service(int conn_fd)
 {
     char ch;
@@ -126,7 +138,8 @@ int Chatting_Service(int conn_fd)
                 Chat_Record_Srv(1);
                 break; 
             case '4':
-		        Change_Password(conn_fd);
+		        system("clear");
+                Change_Password(conn_fd);
                 break;
             case '5':
                 return 0;
@@ -389,7 +402,7 @@ paging.totalRecords, Pageing_CurPage(paging),Pageing_TotalPages(paging));
 	List_Destroy(head,message_node_t);
 }
 
-void passwd(char *password)
+void Passwd(char *password)
 {
     int i=0,flag;
     char ch;
@@ -440,8 +453,15 @@ void passwd(char *password)
         password[20]='\0';
     }
 }
-
-void getname(char *name)
+void Password_Encryption(char *password)
+{
+    int i;
+    for(i=0;i<strlen(password);i++)
+    {
+        password[i]+=i;
+    }
+}
+void Getname(char *name)
 {
     int i=0,flag;
     char ch;
@@ -494,16 +514,16 @@ void getname(char *name)
 }
 
 
-int getpasswd(char *password)
+int Getpasswd(char *password)
 {
     char passwd_first[21];
     char passwd_again[21];
 
     printf("Please Input Your Password:");
-    passwd(passwd_first);
+    Passwd(passwd_first);
     
     printf("Please Input Your Password Again:");
-    passwd(passwd_again);
+    Passwd(passwd_again);
     
     if(strcmp(passwd_first,passwd_again))
     {
@@ -517,16 +537,16 @@ int getpasswd(char *password)
 void Change_Password(int conn_fd)
 {
     int i;
-    message_node_t buf;
+    message_node_t send_buf,recv_buf;
     time_t now;
     char Nickname[21];
     char Origin_Password[21];
     char New_Password[21];
     printf("Please Input Original Password:");
-    passwd(Origin_Password);
+    Passwd(Origin_Password);
     for(i=0;i<10;i++)
     {
-        if(!getpasswd(New_Password))
+        if(!Getpasswd(New_Password))
         {
             printf("Two Entered Password Diff,Please Try Again!\n");
         }
@@ -539,26 +559,34 @@ void Change_Password(int conn_fd)
             break;
         }
     }
-    buf.flag=7;
+    send_buf.flag=7;
     time(&now);
-    buf.Sendtime=now;
-    strcpy(buf.Sendname,UserName);
-    strcpy(buf.Recvname,New_Password);
-    strcpy(buf.Message,Origin_Password);
-    if(send(conn_fd,&buf,sizeof(message_node_t),0)<0)
+    send_buf.Sendtime=now;
+    strcpy(send_buf.Sendname,UserName);
+    Password_Encryption(New_Password);
+    strcpy(send_buf.Recvname,New_Password);
+    Password_Encryption(Origin_Password);
+    strcpy(send_buf.Message,Origin_Password);
+    if(send(conn_fd,&send_buf,sizeof(message_node_t),0)<0)
     {
         perror("send");
     }
+    if(recv(conn_fd,&recv_buf,sizeof(message_node_t),0)<0)
+    {
+        perror("send");
+    }
+    printf("\n%s\n",recv_buf.Message);
+    sleep(3);
 }
 void Get_info(char *Nickname,char *Password)
 {
     int i,j;
     char buf[BUFMAX];
     printf("Please Input Your Nickname:");
-    getname(Nickname);
+    Getname(Nickname);
     for(i=0;i<10;i++)
     {
-        if(!getpasswd(Password))
+        if(!Getpasswd(Password))
         {
             printf("Two Entered Password Diff,Please Try Again!\n");
         }
@@ -630,9 +658,10 @@ int Sign_In(int sock_fd,struct sockaddr_in serv_addr,message_node_t *recv_buf)
     time_t now;
     message_node_t send_buf;
     printf("Please Input Your Nickname:");
-    getname(Nickname);
+    Getname(Nickname);
     printf("Please Input Your Password:");
-    passwd(Password);
+    Passwd(Password);
+    Password_Encryption(Password);
     send_buf.flag=2;
     strcpy(send_buf.Sendname,Nickname);
     strcpy(send_buf.Recvname,Password);
@@ -784,6 +813,7 @@ int Login_Service(int sign,int argc,char *argv[])
     if(Chatting_Service(conn_fd))
     {
         printf("***************************Begin Chatting***********************************\n");
+        Help();
         pthread_create(&tid1,NULL,threadsend,&conn_fd);
         pthread_create(&tid2,NULL,threadrecv,&conn_fd);
         pthread_join(tid2,(void *)&status);
@@ -866,7 +896,12 @@ void *threadsend(void * vargp)
             strcpy(buf.Sendname,UserName);
             strcpy(buf.Recvname,"system");
             buf.Sendtime=now;
-            if(!strncmp(buf.Message,"quit",4))
+            if(!strncmp(buf.Message,"help",4))
+            {
+                Help();
+                continue;
+            }
+            else if(!strncmp(buf.Message,"quit",4))
             {
                 exit_sign=1;
                 if(send(connfd,&buf,sizeof(message_node_t),0)<0)
@@ -875,6 +910,13 @@ void *threadsend(void * vargp)
                 }
                 close(connfd);
                 pthread_exit(0); 
+            }
+            else if(!strncmp(buf.Message,"online",6))
+            {}
+            else
+            {
+                printf("\033[34mNot Found This Commond!\033[0m\n");
+                continue;
             }
             if(send(connfd,&buf,sizeof(message_node_t),0)<0)
             {
