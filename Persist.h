@@ -9,8 +9,8 @@
 #ifndef _PERSIST_H
 #define _PERSIST_H
 
-static const char USERINFO_DATA_FILE[] = "./data/UserInfo.dat";
-static const char GROUPCHAT_DATA_FILE[] ="./user/group/Chat.dat";
+char USERINFO_DATA_FILE[] = "./data/UserInfo.dat";
+char GROUPCHAT_DATA_FILE[] ="./user/group/Chat.dat";
 char OFFLINEMESSAGE_DATA_FILE[]="./user/offline/OffLine.dat";
 char OFFLINEMESSAGE_DATA_TEMP_FILE[]="./user/offline/OffLinetemp.dat";
 
