@@ -51,12 +51,26 @@
  *  int User_Init(char *user_name)  //用户初始化函数，创建用户自己的文件夹
  *  int Client_Init(char *user_name) //客户端初始化函数，创建客户端所必需的文件夹
  *  int Register_Persist(message_node_t *data) //用户信息写入函数，成功1，失败0
+ *  int Service_Group_Message_Save(char *file,message_node_t *data)  //用户群消息写入函数,返回1 表示操作成功，0 表示操作失败
  *  int Service_Message_Save(char *file,message_node_t *data) //用户消息写入函数，1成功，0失败
- *
- *  int Register_Persist(message_node_t *buf)  //用户信息写入函数，返回1 表示操作成功，0 表示操作失败
+ *  int Offline_Message_Save(message_node_t *data) //离线消息保存函数
+ *  int Offline_Message_Select(char *Recvname,message_node_t *head)  //通过用户名，找到用户相关信息返回1表示找到，0表示未找到
+ *  int Client_Message_Save(char *name,message_node_t *data) //客户端私聊信息保存函数，0失败，1成功
+ *  int Client_Group_Message_Save(char *name,message_node_t *data)  //用户信息写入函数,返回1 表示操作成功，0 表示操作失败
+ *  int UserInfo_SelectByName(char *name) //通过用户名查找该用户是否存在,1表示存在。0表示不存在
  *  int UserInfo_Perst_Select(char *name,message_node_t *buf)  //通过用户名，找到用户相关信息返回1表示找到，0表示未找到
- *  int Play_Perst_Update(const message_node_t *data)  ////将参数所指向的新信息写入到文件中，返回0表示操作失败，返回1表示操作成功
- *  
+ *  int User_Passwd_Update(message_node_t *data)  //将参数所指向的新信息写入到文件中，返回0表示操作失败，返回1表示操作成功
+ *  int Private_Message_SelectByTime(char *name,date_t dt1,date_t dt2,message_node_t *list)  //通过时间范围查询私聊信息
+ *  int Group_Message_SelectByTime(char *name,date_t dt1,date_t dt2,message_node_t *list) //通过时间范围查询群聊信息
+ *  int Private_Message_SelectByName(char *name,char *select_name,message_node_t *list)  //通过用户名查询用户私聊信息
+ *  int Group_Message_SelectByName(char *name,char *select_name,message_node_t *list)  //通过用户名查询用户群聊信息
+ *  int Private_Message_SelectAll(char *name,message_node_t *list)  //获取所有私聊信息函数
+ *  int Group_Message_SelectAll(char *name,message_node_t *list)  //获取所有私聊信息函数
+ *  int Group_Message_SelectByTime(char *name,date_t dt1,date_t dt2,message_node_t *list) //通过时间范围查询群聊信息 
+ *  int Private_Message_SelectByName(char *name,char *select_name,message_node_t *list)  //通过用户名查询用户私聊信息
+ *  int Group_Message_SelectByName(char *name,char *select_name,message_node_t *list)  //通过用户名查询用户群聊信息
+ *  int Private_Message_SelectAll(char *name,message_node_t *list)  //获取所有私聊信息函数
+ *  int Group_Message_SelectAll(char *name,message_node_t *list)  //获取所有群聊信息函数
  */
 
 
@@ -86,10 +100,10 @@ typedef struct Message
 
 typedef struct On_Line     
 {
-    char name[21];    //在线的用户名
-    int sock_fd;      //在线用户套接字描述符
-    char address[20]; //在线用户ip
-    struct On_Line *next;
+    char name[21];          //在线的用户名
+    int sock_fd;            //在线用户套接字描述符
+    char address[20];       //在线用户ip
+    struct On_Line *next;   
     struct On_Line *prev;
 } online_node_t;
 
@@ -98,9 +112,8 @@ typedef struct On_Line
 int fd_count=0;
 extern int errno;
 
-//在线用户链表头结点（全局变量）
 
-online_node_t *head;
+online_node_t *head; //在线用户链表头结点（全局变量）
 
 int Info_Match(char *name,char *passwd)  //信息匹配函数，用于进行密码和用户名的验证,0表示操作失败，1表示操作成功
 {
@@ -132,7 +145,7 @@ int OnLine_Find_ByName(char *name) //在线用户查询函数，在返回1不在
     return 0;
 }
 
-int Offline_Message_Send(int conn_fd,char *name)  //离线消息发送函数
+int Offline_Message_Send(int conn_fd,char *name)  //离线消息发送函数,成功发送返回1，失败返回0
 {
     int count=0,i;
     message_node_t *head,*p;
@@ -148,25 +161,27 @@ int Offline_Message_Send(int conn_fd,char *name)  //离线消息发送函数
             if(send(conn_fd,p,sizeof(message_node_t),0)<0)
             {
                 Error_Log("send: ",strerror(errno));
+                return 0;
             }
         }
     }
+    return 1;
 }
 
-int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息服务函数
+int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息服务函数,成功返回1，失败返回0
 {
     int rtn=0;
     message_node_t recv_buf,send_buf;
     time_t now;
-    if(recv(conn_fd,&recv_buf,sizeof(message_node_t),0)<0)
+    if(recv(conn_fd,&recv_buf,sizeof(message_node_t),0)<0) //接受用户发送来的数据
     {
         Error_Log("recv: ",strerror(errno));
         exit(0);
     }
-    switch(recv_buf.flag)
+    switch(recv_buf.flag) //通过flag对数据内容进行解析
     {
-        case 1:
-            if(UserInfo_SelectByName(recv_buf.Sendname))  //对用户名存在性进行检测，如果存在，则直接返回
+        case 1:  //用户注册数据包
+            if(UserInfo_SelectByName(recv_buf.Sendname))  //对用户名存在性进行检测，如果存在，则直接发送昵称重复函数
             {  
                 send_buf.flag=0;
                 strcpy(send_buf.Sendname,"system");
@@ -181,9 +196,9 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
                     exit(0);
                 }
             }
-            else
+            else //否则说明昵称正确，准备保存
             {
-                if(Register_Persist(&recv_buf))
+                if(Register_Persist( &recv_buf )) //写入成功，则返回注册成功
                 {
                     
                     send_buf.flag=0;
@@ -201,7 +216,7 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
                         exit(0);
                     }
                 }
-                else
+                else //写入失败，则返回注册失败
                 {      
                     send_buf.flag=0;
                     strcpy(send_buf.Sendname,"system");
@@ -220,10 +235,10 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
             }
             close(conn_fd);
             break;
-        case 2:
-            if(Info_Match(recv_buf.Sendname,recv_buf.Recvname))
+        case 2:  //用户登录数据包
+            if(Info_Match(recv_buf.Sendname,recv_buf.Recvname)) //检查用户名，密码是否匹配
             {
-                if(OnLine_Find_ByName(recv_buf.Sendname))
+                if(OnLine_Find_ByName(recv_buf.Sendname)) //检测用户是否在线
                 {
                     send_buf.flag=0;
                     strcpy(send_buf.Sendname,"system");
@@ -239,7 +254,7 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
                     }
                     rtn=0;
                 }
-                else
+                else 
                 {  
                     send_buf.flag=0;
                     strcpy(send_buf.Sendname,"system");
@@ -276,14 +291,14 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
     return rtn;
 }
 
-void System_command(message_node_t *buf,int conn_fd)
+void System_command(message_node_t *buf,int conn_fd) //系统命令解析函数
 {
     int i;
     online_node_t *p;
     message_node_t send_buf;
     p=head;
     time_t now;
-    if(!strncmp(buf->Message,"quit",4))
+    if(!strncmp(buf->Message,"quit",4)) //客户端退出命令
     {
         for(i=0;i<fd_count;i++)
         {
@@ -300,7 +315,7 @@ void System_command(message_node_t *buf,int conn_fd)
             }
         }
     }
-    else if(!strncmp(buf->Message,"online",6))
+    else if(!strncmp(buf->Message,"online",6)) //查询在线用户命令
     {
         time(&now);
         send_buf.flag=6;
@@ -348,14 +363,14 @@ void System_command(message_node_t *buf,int conn_fd)
     }
 }
 
-int Change_Password_Srv(message_node_t *buf)
+int Change_Password_Srv(message_node_t *buf) //更改登录密码服务函数
 {
     time_t now;
     message_node_t data;
     UserInfo_Perst_Select(buf->Sendname,&data);
-    if(!strcmp(buf->Message,data.Recvname))
+    if(!strcmp(buf->Message,data.Recvname)) //检测旧密码是否匹配
     {
-        User_Passwd_Update(buf);
+        User_Passwd_Update(buf); //更新密码
         return 1;
     }
     else
@@ -363,34 +378,34 @@ int Change_Password_Srv(message_node_t *buf)
         return 0;
     }
 }
-int Send_Message(int conn_fd,message_node_t *buf)
+int Send_Message(int conn_fd,message_node_t *buf) //数据包解析转发函数
 {
     int j;
     message_node_t send_buf;
     online_node_t *t;
     t=head;
     time_t now;
-    switch(buf->flag)
+    switch(buf->flag) //对数据包进行解析函数
     {
-        case 0:
-            System_command(buf,conn_fd);
+        case 0: //系统命令
+            System_command(buf,conn_fd); 
             break;
-        case 3:
-            Service_Group_Message_Save("./user/group/Chat.dat",buf);
+        case 3: //用户群聊
+            Service_Group_Message_Save("./user/group/Chat.dat",buf); //保存群聊信息函数
             for(j=0;j<fd_count;j++)
             {          
                 t=t->next;
                 if (t->sock_fd==head->prev->sock_fd || !strcmp(t->name,buf->Sendname))
                     continue;
-                if(send(t->sock_fd,buf,sizeof(message_node_t),0)<0)
+                if(send(t->sock_fd,buf,sizeof(message_node_t),0)<0) 
                 {
                     Error_Log("send: ",strerror(errno));
                     exit(0);
                 }
             }
             break;
-        case 4:
-            if(UserInfo_SelectByName(buf->Recvname))
+        case 4: //用户私聊
+            if(UserInfo_SelectByName(buf->Recvname)) //检验要私聊的用户是否注册
             {
                 Service_Message_Save(buf->Sendname,"./user/",buf);
                 Service_Message_Save(buf->Recvname,"./user/",buf);
@@ -431,7 +446,7 @@ int Send_Message(int conn_fd,message_node_t *buf)
                     }
                 }
             }
-            else
+            else //未注册的话，报告用户没有此人
             {
                 send_buf.flag=5;
                 time(&now);
@@ -446,8 +461,8 @@ int Send_Message(int conn_fd,message_node_t *buf)
                 }
                 return 0;
             }
-        case 7:
-            if(Change_Password_Srv(buf))
+        case 7: //修改密码
+            if(Change_Password_Srv(buf)) //修改密码函数
             {
                 send_buf.flag=6;
                 time(&now);
@@ -462,7 +477,7 @@ int Send_Message(int conn_fd,message_node_t *buf)
                     exit(0);
                 }
             }
-            else
+            else //修改密码失败的话，报告用户
             {
                 send_buf.flag=6;
                 time(&now);
@@ -481,7 +496,7 @@ int Send_Message(int conn_fd,message_node_t *buf)
     }
 }
 
-int main()
+int main() //主函数
 {
     int sock_fd;
     int conn_fd;
@@ -497,14 +512,15 @@ int main()
     List_Init(head,online_node_t);
     fd_set readfds,testfds;
     
-     //创建一个TCP 套接字
-    sock_fd=socket(AF_INET,SOCK_STREAM,0);
+    sock_fd=socket(AF_INET,SOCK_STREAM,0); //创建一个TCP 套接字
+    
     if(sock_fd<0)
     {
         Error_Log("socket: ",strerror(errno));
     }
 
     //设置该套接字使之可以重新绑定
+    
     optval=1;
     
     if(setsockopt(sock_fd,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(int))<0)
@@ -535,11 +551,11 @@ int main()
     strcpy(p->name,"system");
     p->sock_fd=sock_fd;
     strcpy(p->address,"127.0.0.1");
-    List_AddHead(head,p);
+    List_AddHead(head,p);  //往在线用户链表里加入系统套接字
     fd_count++;
     srv_len=sizeof(struct sockaddr_in);
-    FD_ZERO(&readfds); 
-    FD_SET(sock_fd,&readfds);
+    FD_ZERO(&readfds);          //将监听集合清空
+    FD_SET(sock_fd,&readfds);   //然后将系统套接字加入到监听集合里 
     while(1)
     {
         int fd;
@@ -548,11 +564,11 @@ int main()
         int flag=0;
         online_node_t *s;
         s=head;
-        testfds=readfds;
+        testfds=readfds; //每次将集合先保存
         
         printf("service waiting\n"); 
         
-        ret=select(MAX_LIST, &testfds ,(fd_set *)0,(fd_set *)0,(struct timeval *)0);
+        ret=select(MAX_LIST, &testfds ,(fd_set *)0,(fd_set *)0,(struct timeval *)0); // IO 复用函数
         if(ret<0)
         {
             Error_Log("select: ",strerror(errno));
@@ -567,11 +583,11 @@ int main()
                 if(s->sock_fd==sock_fd) //如果响应的是监听套接字，则说明是一个新的用户请求
                 {
                     clt_len=sizeof(struct sockaddr_in);
-                    conn_fd=accept(s->sock_fd,(struct sockaddr *)&clt_sock,&clt_len);
-                    printf("New connect %d ip is %s",conn_fd,inet_ntoa(clt_sock.sin_addr));
+                    conn_fd=accept(s->sock_fd,(struct sockaddr *)&clt_sock,&clt_len);       //接受客户端连接
+                    printf("New connect %d ip is %s",conn_fd,inet_ntoa(clt_sock.sin_addr)); 
                     int sign=0;
                     char newName[21];
-                    sign=Log_Service(conn_fd,newName,inet_ntoa(clt_sock.sin_addr));
+                    sign=Log_Service(conn_fd,newName,inet_ntoa(clt_sock.sin_addr)); //然后进行连接后的处理，注册或登录验证
                     if(sign==1)
                     {
                         p=(online_node_t *)malloc(sizeof(online_node_t));
@@ -582,12 +598,12 @@ int main()
                         FD_SET(p->sock_fd,&readfds);
                         fd_count++;
                         printf("adding client on fd %d name:%s\n",p->sock_fd,p->name);
-                        if((pid=fork())==0)
+                        if((pid=fork())==0) //用户上线后先给其发送离线消息（如果有的话）
                         {
-                            Offline_Message_Send(p->sock_fd,p->name);
+                            Offline_Message_Send(p->sock_fd,p->name); //发送离线消息
                             exit(0);
                         }
-                        if((pid=fork())==0)
+                        if((pid=fork())==0)     //给所有在线用户发送用户上线提醒
                         {
                             message_node_t buf;
                             online_node_t *t;
