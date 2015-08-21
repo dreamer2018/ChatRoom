@@ -238,7 +238,7 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
         case 2:  //用户登录数据包
             if(Info_Match(recv_buf.Sendname,recv_buf.Recvname)) //检查用户名，密码是否匹配
             {
-                if(OnLine_Find_ByName(recv_buf.Sendname)) //检测用户是否在线
+                if(OnLine_Find_ByName(recv_buf.Sendname)) //判断用户是否在线,在线的话就提醒重复登录
                 {
                     send_buf.flag=0;
                     strcpy(send_buf.Sendname,"system");
@@ -254,7 +254,7 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
                     }
                     rtn=0;
                 }
-                else 
+                else //不在线则提醒登录成功
                 {  
                     send_buf.flag=0;
                     strcpy(send_buf.Sendname,"system");
@@ -272,7 +272,7 @@ int Log_Service(int conn_fd,char *newName,char *address) //登录/注册信息�
                     rtn=1;
                 }
             }
-            else
+            else //密码错误或用户名不存在则提醒用户名或密码错误错误
             {
                 send_buf.flag=0;
                 strcpy(send_buf.Sendname,"system");
@@ -345,7 +345,7 @@ void System_command(message_node_t *buf,int conn_fd) //系统命令解析函数
             } 
         }
     }
-    else
+    else //如果没有输入的命令,则提示命令不存在
     {
         time(&now);
         send_buf.flag=6;
