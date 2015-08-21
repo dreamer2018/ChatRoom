@@ -914,11 +914,11 @@ void *threadsend(void * vargp)
             }
             else if(!strncmp(buf.Message,"online",6))
             {}
-            else
-            {
-                printf("\033[34mNot Found This Commond!\033[0m\n");
-                continue;
-            }
+           // else
+            //{
+             //   printf("\033[34mNot Found This Commond!\033[0m\n");
+            //    continue;
+           // }
             if(send(connfd,&buf,sizeof(message_node_t),0)<0)
             {
                 perror("send");
@@ -962,7 +962,7 @@ void *threadrecv(void *vargp)
                 printf("\n%68s"," ");
                 Simply_time(buf.Sendtime);
                 printf("\n");
-                printf("\033[35m%65s\033[0m :\033[45m %8s\033[0m\n",buf.Message,buf.Sendname);
+                printf("\033[31m%65s\033[0m :\033[45m %8s\033[0m\n",buf.Message,buf.Sendname);
                 Client_Message_Save(UserName,&buf);
             }
             else if(buf.flag==5)
