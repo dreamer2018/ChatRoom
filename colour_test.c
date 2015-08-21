@@ -9,5 +9,5 @@
 #include<stdio.h>
 int main()
 {
-    printf("\033[31m hello world \033[0m\n");
+    printf("\033[45m hello world \033[0m\n");
 }
