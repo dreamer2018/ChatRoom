@@ -32,15 +32,15 @@
 char UserName[21];
 int exit_sign=0;
 
-int Chatting_Function(int conn_fd);
-int Login_Service(int sign,int argc,char *argv[]);
-void *threadrecv(void *vargp);
-void *threadsend(void *vargp);
-void print_time(time_t st_time); //日期解析函数
-void Get_Group_Chatting_Record(int fla,date_t dt1,date_t dt2,char *name);
-void Get_Private_Chatting_Record(int flag,date_t dt1,date_t dt2,char *name);
-int DateCmp();
-int DateCmp_Srv();
+int Chatting_Function(int conn_fd);                 //聊天功能函数
+int Login_Service(int sign,int argc,char *argv[]);  //登录服务函数
+void *threadrecv(void *vargp);                      //接收消息线程函数
+void *threadsend(void *vargp);                      //发送消息线程函数
+void print_time(time_t st_time);                    //日期解析函数
+void Get_Group_Chatting_Record(int fla,date_t dt1,date_t dt2,char *name);           //获取群聊记录函数
+void Get_Private_Chatting_Record(int flag,date_t dt1,date_t dt2,char *name);        //获取私聊记录函数
+int DateCmp();          //日期比较函数
+int DateCmp_Srv();      //如期比较服务函数
 int Chat_Record_Srv(int sign);  //sign=1 私聊 sign=0 群聊
 void Change_Password(int sock_fd);  //修改密码函数
 
@@ -93,7 +93,7 @@ int main(int argc,char *argv[]) //主函数
     printf("\n");
 }
 
-void Help()
+void Help() //用户帮助函数
 {
     printf("------------------------------------------------------------\n");
     printf("------                   Help                         ------\n");
@@ -104,8 +104,8 @@ void Help()
     printf("------    @someone   Chatting Witn someone alone      ------\n");
     printf("------------------------------------------------------------\n");
 }
-int Chatting_Service(int conn_fd)
-{
+int Chatting_Service(int conn_fd) //聊天服务函数
+{  
     char ch;
     do
     {
@@ -236,7 +236,7 @@ int Chat_Record_Srv(int sign)  //sign=1 私聊 sign=0 群聊
 		}
     }while(1);
 }
-void Get_Private_Chatting_Record(int sign,date_t dt1,date_t dt2,char *name)
+void Get_Private_Chatting_Record(int sign,date_t dt1,date_t dt2,char *name)     //获取私聊记录函数
 {
 	int i;
     char choice;
@@ -319,7 +319,7 @@ paging.totalRecords, Pageing_CurPage(paging),Pageing_TotalPages(paging));
 	List_Destroy(head,message_node_t);
 }
 
-void Get_Group_Chatting_Record(int sign,date_t dt1,date_t dt2,char *name)
+void Get_Group_Chatting_Record(int sign,date_t dt1,date_t dt2,char *name) //获取群聊记录函数
 {
 	int i;
     char choice;
@@ -402,7 +402,7 @@ paging.totalRecords, Pageing_CurPage(paging),Pageing_TotalPages(paging));
 	List_Destroy(head,message_node_t);
 }
 
-void Passwd(char *password)
+void Passwd(char *password) //密码获取函数
 {
     int i=0,flag;
     char ch;
@@ -453,7 +453,7 @@ void Passwd(char *password)
         password[20]='\0';
     }
 }
-void Password_Encryption(char *password)
+void Password_Encryption(char *password) //密码加密函数
 {
     int i;
     for(i=0;i<strlen(password);i++)
@@ -461,7 +461,7 @@ void Password_Encryption(char *password)
         password[i]+=i;
     }
 }
-void Getname(char *name)
+void Getname(char *name) //获取用户名函数
 {
     int i=0,flag;
     char ch;
@@ -514,7 +514,7 @@ void Getname(char *name)
 }
 
 
-int Getpasswd(char *password)
+int Getpasswd(char *password) //获取密码函数
 {
     char passwd_first[21];
     char passwd_again[21];
@@ -534,7 +534,7 @@ int Getpasswd(char *password)
     return 1;
 }
 
-void Change_Password(int conn_fd)
+void Change_Password(int conn_fd) //更改密码函数
 {
     int i;
     message_node_t send_buf,recv_buf;
@@ -578,7 +578,7 @@ void Change_Password(int conn_fd)
     printf("\n%s\n",recv_buf.Message);
     sleep(3);
 }
-void Get_info(char *Nickname,char *Password)
+void Get_info(char *Nickname,char *Password) //获取用户信息函数
 {
     int i,j;
     char buf[BUFMAX];
@@ -601,7 +601,7 @@ void Get_info(char *Nickname,char *Password)
     }
 }
 
-int Register(int sock_fd,struct sockaddr_in serv_addr)
+int Register(int sock_fd,struct sockaddr_in serv_addr) //注册函数
 {
     int rtn=0;
     int i;
@@ -651,7 +651,7 @@ int Register(int sock_fd,struct sockaddr_in serv_addr)
     return rtn;
 }
 
-int Sign_In(int sock_fd,struct sockaddr_in serv_addr,message_node_t *recv_buf)
+int Sign_In(int sock_fd,struct sockaddr_in serv_addr,message_node_t *recv_buf) //登录函数
 {
     int i;
     int rtn=0;
@@ -707,14 +707,14 @@ void print_time(time_t st_time) //日期解析函数
     printf("%d-%.2d-%.2d %.2d:%.2d:%.2d\n",p->tm_year+1900,p->tm_mon+1,p->tm_mday,p->tm_hour,p->tm_min,p->tm_sec);
 }
 
-void Simply_time(time_t st_time)
+void Simply_time(time_t st_time)  //显示时间函数
 {
     struct tm *p;
     p=localtime(&st_time);
     printf("%.2d:%.2d:%.2d",p->tm_hour,p->tm_min,p->tm_sec);
 }
 
-int Login_Service(int sign,int argc,char *argv[])
+int Login_Service(int sign,int argc,char *argv[])  //登录服务函数
 {   
     int i;
     int ret;
@@ -826,7 +826,7 @@ int Login_Service(int sign,int argc,char *argv[])
     }
 }
 
-void *threadsend(void * vargp)
+void *threadsend(void * vargp)  //发送消息线程函数
 {
     int connfd = *((int *)vargp);
     int idata;
@@ -942,7 +942,7 @@ void *threadsend(void * vargp)
 }
 
 
-void *threadrecv(void *vargp)
+void *threadrecv(void *vargp)  //接收消息线程函数
 {
     int connfd = *((int *)vargp);   
     message_node_t buf;
