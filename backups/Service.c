@@ -427,7 +427,6 @@ int Send_Message(int conn_fd,message_node_t *buf) //数据包解析转发函数
                 }
                 else  //如果不在线的话，就启动离线消息机制
                 {
-                    Offline_Message_Save(buf); //将消息内容保存到文件中暂存起来
                     send_buf.flag=5;
                     time(&now);
                     send_buf.Sendtime=now;
@@ -439,7 +438,7 @@ int Send_Message(int conn_fd,message_node_t *buf) //数据包解析转发函数
                         Error_Log("send: ",strerror(errno));
                         exit(0);
                     }
-                    if(!Offline_Message_Save(buf))
+                    if(!Offline_Message_Save(buf)) //保存离线消息并判断是否保存成功
                     {
                         Error_Log("Offline_Message_Save: ","Offline Message Write Fail");
                         return 0;
@@ -461,6 +460,7 @@ int Send_Message(int conn_fd,message_node_t *buf) //数据包解析转发函数
                 }
                 return 0;
             }
+            break;
         case 7: //修改密码
             if(Change_Password_Srv(buf)) //修改密码函数
             {
