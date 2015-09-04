@@ -993,6 +993,10 @@ void *threadrecv(void *vargp)  //接收消息线程函数
             }
             else
             {
+                if(buf.flag==0 && strncmp(buf.Sendname,"system",6))
+                {
+                    continue;
+                }
                 printf("\n%68s"," ");
                 Simply_time(buf.Sendtime);
                 printf("\n");
