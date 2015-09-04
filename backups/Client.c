@@ -461,7 +461,7 @@ void Password_Encryption(char *password) //密码加密函数
         password[i]+=i;
     }
 }
-void Getname(char *name) //获取用户名函数
+int Getname(char *name) //获取用户名函数
 {
     int i=0,flag;
     char ch;
@@ -511,8 +511,24 @@ void Getname(char *name) //获取用户名函数
     {
         name[20]='\0';
     }
+    return i;
 }
 
+void Getname_Test(char *name) //带验证的用户名输入，用户名长度需大于一
+{
+    while(1)
+    {
+        if(Getname(name)<1)
+        {
+            printf("Nickname Must More Than 1 Character\n");
+            printf("Please Input Your Nickname:");
+        }
+        else
+        {
+            break;
+        }
+    }
+}
 
 int Getpasswd(char *password) //获取密码函数
 {
@@ -578,12 +594,13 @@ void Change_Password(int conn_fd) //更改密码函数
     printf("\n%s\n",recv_buf.Message);
     sleep(3);
 }
+
 void Get_info(char *Nickname,char *Password) //获取用户信息函数
 {
     int i,j;
     char buf[BUFMAX];
     printf("Please Input Your Nickname:");
-    Getname(Nickname);
+    Getname_Test(Nickname);
     for(i=0;i<10;i++)
     {
         if(!Getpasswd(Password))
